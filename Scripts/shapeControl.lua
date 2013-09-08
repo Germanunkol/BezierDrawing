@@ -28,11 +28,44 @@ function ShapeControl:click( x, y, button )
 		if self.selShape then
 			hit = self.selShape:click( x, y, button )
 		end
-		if not hit then
-			if not self.selShape then
-				self.selShape = self:newShape()
+		
+		if love.keyboard.isDown( "lalt", "ralt" ) then
+			if not hit or hit.class ~= Corner then
+				if not self.selShape then
+					self.selShape = self:newShape()
+				end
+			
+				if self.snapToGrid then
+					x = math.floor((x+self.gridSize/2)/self.gridSize)*self.gridSize
+					y = math.floor((y+self.gridSize/2)/self.gridSize)*self.gridSize
+				end
+				self.selShape:addCorner( x, y )
+			else
+			
+				self.selShape:addCurve( hit )
+			
 			end
-			self.selShape:addCorner( x, y )
+		else
+			if hit then
+				-- if the point that I clicked on was a corner, not a normal construction point:
+				if self.selShape and hit.class == Corner then
+					self.selShape:selectCorner( hit )
+				end
+			end
+		end
+	end
+	if button == "r" then
+		local hit
+		if self.selShape then
+			hit = self.selShape:checkHit( x, y )
+		end
+		if hit and hit.class == Corner then
+			self.selShape:removeCorner( hit )
+		else
+			if self.selShape then
+				self.selShape:setSelected( false )
+				self.selShape = nil
+			end
 		end
 	end
 end

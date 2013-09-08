@@ -5,7 +5,11 @@ local shapeControl
 
 
 function love.load()
+
+	love.filesystem.setIdentity("BezierDrawing")
+
 	shapeControl = ShapeControl:new(gridSize)
+	
 end
 
 function displayKey( x, y, redText, whiteText )
@@ -30,8 +34,10 @@ function love.draw()
 	local y = 10
 	y = displayKey(10, y, "", "FPS: " .. love.timer.getFPS())
 	--y = displayKey(10, y, "Esc", "Select none")
-	y = displayKey(10, y, "Click", "Add point")
+	y = displayKey(10, y, "Alt + Click", "Add point")
 	y = displayKey(10, y, "Click + Drag", "Move point")
+	y = displayKey(10, y, "Ctrl", "Snap to grid")
+	y = displayKey(10, y, "Shift", "Snap to point")
 	
 	shapeControl:draw()
 end
@@ -55,6 +61,10 @@ function love.keypressed( key, unicode )
 		if key == "lshift" then
 			shapeControl:setSnapToCPoints( true )
 		end
+	end
+	
+	if key == "f5" then
+		love.graphics.newScreenshot():encode("Screen" .. os.time() ..".png")
 	end
 end
 

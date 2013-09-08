@@ -133,34 +133,48 @@ function Bezier:setLineWidth( width )
 end
 
 function Bezier:update()
+
+	-- Stay a line unless the intermediate points have been moved manually:
+	if not self.cPoints[2].hasBeenMoved and not self.cPoints[3].hasBeenMoved then
+		self.cPoints[2]:interpolate( self.cPoints[1], self.cPoints[4], 0.25 )
+		self.cPoints[3]:interpolate( self.cPoints[1], self.cPoints[4], 0.75 )
+	end
+
 	self.points = calcCoefficients( self.cPoints, 0.5, self.segmentLength )
 end
 
-function Bezier:draw()
+function Bezier:draw( active, closed )
 
 	love.graphics.setLineWidth( self.lineWidth )
-	love.graphics.setColor(255,255,255, 255)
+	
+	if closed then
+		love.graphics.setColor(255,255,125, 255)
+	else
+		love.graphics.setColor(255,255,255, 255)
+	end
 	for k=1,#self.points-1 do
 		love.graphics.line( self.points[k].x, self.points[k].y, self.points[k+1].x, self.points[k+1].y )
 	end
-	love.graphics.setLineWidth( 1 )
+	
+	if active then
+		love.graphics.setLineWidth( 1 )
+		love.graphics.setColor(255,120,50, 75)
 
-	love.graphics.setColor(255,120,50, 150)
-
-	for k = 1, self.numCPoints-1 do
-		love.graphics.line(self.cPoints[k].x, self.cPoints[k].y, self.cPoints[k+1].x, self.cPoints[k+1].y)
-	end
-
-	love.graphics.setPointStyle("rough")
-	for k = 2, self.numCPoints-1 do
-		if k == self.selected then
-			love.graphics.setPointSize( 6 )
-			love.graphics.setColor(255,120,50, 255)
-		else
-			love.graphics.setPointSize( 4 )
-			love.graphics.setColor(255,180,100, 255)
+		for k = 1, self.numCPoints-1 do
+			love.graphics.line(self.cPoints[k].x, self.cPoints[k].y, self.cPoints[k+1].x, self.cPoints[k+1].y)
 		end
-			love.graphics.point( self.cPoints[k].x, self.cPoints[k].y )
+
+		love.graphics.setPointStyle("rough")
+		for k = 2, self.numCPoints-1 do
+			if k == self.selected then
+				love.graphics.setPointSize( 6 )
+				love.graphics.setColor(255,120,50, 255)
+			else
+				love.graphics.setPointSize( 4 )
+				love.graphics.setColor(255,180,100, 255)
+			end
+				love.graphics.point( self.cPoints[k].x, self.cPoints[k].y )
+		end
 	end
 	
 	love.graphics.setColor(255,255,255,255)
@@ -210,6 +224,10 @@ function Bezier:addCPoint( P )
 	self:setSelected( self.numCPoints )		-- new points are always selected!
 	
 	P:addCurve( self )
+end
+
+function Bezier:getCPoint( k )
+	return self.cPoints[k]
 end
 
 function Bezier:removeCPoint( k )
