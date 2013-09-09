@@ -26,29 +26,31 @@ end
 function ShapeControl:click( x, y, button )
 	if button == "l" then
 		if love.keyboard.isDown( "lalt", "ralt" ) then
-			local hit
-			if self.selShape then
-				hit = self.selShape:click( x, y, button, true )
-			end
+			if not self.selShape or not self.selShape.closed then
+				local hit
+				if self.selShape then
+					hit = self.selShape:click( x, y, button, true )
+				end
 		
-			if not hit or hit.class ~= Corner
-				or (hit.prev and hit.next)	-- only two edges per node!
-				or hit == self.selShape:getSelectedCorner()
-				or hit.next == self.selShape:getSelectedCorner()
-				or hit.prev == self.selShape:getSelectedCorner() then
-				if not self.selShape then
-					self.selShape = self:newShape()
+				if not hit or hit.class ~= Corner
+					or (hit.prev and hit.next)	-- only two edges per node!
+					or hit == self.selShape:getSelectedCorner()
+					or hit.next == self.selShape:getSelectedCorner()
+					or hit.prev == self.selShape:getSelectedCorner() then
+					if not self.selShape then
+						self.selShape = self:newShape()
+					end
+			
+					if self.snapToGrid then
+						x = math.floor((x+self.gridSize/2)/self.gridSize)*self.gridSize
+						y = math.floor((y+self.gridSize/2)/self.gridSize)*self.gridSize
+					end
+					self.selShape:addCorner( x, y )
+				else
+			
+					self.selShape:addCurve( hit )
+			
 				end
-			
-				if self.snapToGrid then
-					x = math.floor((x+self.gridSize/2)/self.gridSize)*self.gridSize
-					y = math.floor((y+self.gridSize/2)/self.gridSize)*self.gridSize
-				end
-				self.selShape:addCorner( x, y )
-			else
-			
-				self.selShape:addCurve( hit )
-			
 			end
 		else
 			local hit
