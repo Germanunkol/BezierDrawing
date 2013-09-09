@@ -1,6 +1,7 @@
 require("Scripts/bezier")
 require("Scripts/middleclass")
 require("Scripts/shape")
+require("Scripts/misc")
 
 ShapeControl = class("ShapeControl")
 
@@ -24,13 +25,17 @@ end
 
 function ShapeControl:click( x, y, button )
 	if button == "l" then
-		local hit
-		if self.selShape then
-			hit = self.selShape:click( x, y, button )
-		end
-		
 		if love.keyboard.isDown( "lalt", "ralt" ) then
-			if not hit or hit.class ~= Corner then
+			local hit
+			if self.selShape then
+				hit = self.selShape:click( x, y, button, true )
+			end
+		
+			if not hit or hit.class ~= Corner
+				or (hit.prev and hit.next)	-- only two edges per node!
+				or hit == self.selShape:getSelectedCorner()
+				or hit.next == self.selShape:getSelectedCorner()
+				or hit.prev == self.selShape:getSelectedCorner() then
 				if not self.selShape then
 					self.selShape = self:newShape()
 				end
@@ -46,10 +51,31 @@ function ShapeControl:click( x, y, button )
 			
 			end
 		else
+			local hit
+			if self.selShape then
+				hit = self.selShape:click( x, y, button )
+			end
 			if hit then
 				-- if the point that I clicked on was a corner, not a normal construction point:
 				if self.selShape and hit.class == Corner then
 					self.selShape:selectCorner( hit )
+				end
+			else
+				local hitShape
+				for k = 1, #self.shapes do
+					if self.shapes[k] ~= self.selShape then
+						if self.shapes[k]:checkLineHit( x, y ) then
+							hitShape = self.shapes[k]
+							break
+						end
+					end
+				end
+				if hitShape then
+					if self.selShape then
+						self.selShape:setSelected( false )
+					end
+					hitShape:setSelected( true )
+					self.selShape = hitShape
 				end
 			end
 		end
@@ -61,9 +87,8 @@ function ShapeControl:click( x, y, button )
 		end
 		if hit and hit.class == Corner then
 			self.selShape:removeCorner( hit )
-		else
-			if self.selShape then
-				self.selShape:setSelected( false )
+			if self.selShape:getNumCorners() == 0 then
+				removeFromTbl( self.shapes, self.selShape )
 				self.selShape = nil
 			end
 		end
@@ -75,6 +100,35 @@ function ShapeControl:release( x, y, button )
 		self.selShape:release()
 	end
 end
+
+
+function ShapeControl:keypressed( key, unicode )
+	if key == "lctrl" then
+		self:setSnapToGrid( true )
+	else
+		if key == "lshift" then
+			self:setSnapToCPoints( true )
+		end
+	end
+	
+	if key == "escape" then
+		if self.selShape then
+			self.selShape:setSelected( false )
+			self.selShape = nil
+		end
+	end
+end
+
+function ShapeControl:keyreleased( key, unicode )
+	if key == "lctrl" then
+		self:setSnapToGrid( false )
+	else
+		if key == "lshift" then
+			self:setSnapToCPoints( false )
+		end
+	end
+end
+
 
 function ShapeControl:draw()
 	for k = 1,#self.shapes do

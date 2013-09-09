@@ -99,41 +99,30 @@ function Shape:addCurve( connectTo )
 				connectTo.bezierNext = b
 			end
 		end
+		
+		self:selectCorner( nil )
 	end
 end
 
 function Shape:selectCorner( new )
 	if self.selectedCorner then
 		self.selectedCorner:deselect()
+		self.selectedCorner = nil
 	end
-	self.selectedCorner = new
-	new:select()
+	if new then
+		self.selectedCorner = new
+		new:select()
+	end
 end
 
-function removeFromTbl( tbl, elem )
-	for k = 1, #tbl do
-		if tbl[k] == elem then
-			for i = k,#tbl-1 do
-				tbl[i] = tbl[i+1]
-			end
-			tbl[#tbl] = nil
-			return
-		end
-	end
+function Shape:getSelectedCorner()
+	return self.selectedCorner
 end
+
 
 function Shape:removeCorner( p )
 
 	removeFromTbl( self.corners, p )
-	
-	if self.selectedCorner == p then
-		if self.corners[1] then
-			print("test", self.corners[1])
-			self:selectCorner( self.corners[1] )
-		else
-			self.selectedCorner = nil
-		end
-	end
 	
 	-- join previous and next:
 	if p.prev and p.next and not self.closed then
@@ -160,7 +149,19 @@ function Shape:removeCorner( p )
 			p.prev.next = nil
 			p.prev.bezierNext = nil
 		end
+		if self.closed then
+			self:selectCorner( nil )
+		end
 		self.closed = false
+	end
+	
+	if self.selectedCorner == p or self.selectedCorner == nil then
+		for k=1, #self.corners do
+			if  self.corners[k].next == nil then
+				self:selectCorner( self.corners[k] )
+				break
+			end
+		end
 	end
 	
 	removeFromTbl( self.curves, p.bezierPrev )
@@ -199,11 +200,13 @@ function Shape:checkHit( x, y, ignore )
 	return hit, minDist
 end
 
-function Shape:click( x, y, button )
+function Shape:click( x, y, button, dontDrag )
 	if button == "l" then
 		local hit = self:checkHit( x, y )
 		if hit then
-			self.draggedPoint = hit
+			if not dontDrag then
+				self.draggedPoint = hit
+			end
 			return hit
 		end
 	end
@@ -241,5 +244,14 @@ function Shape:setSelected( bool )
 	self.selected = bool
 end
 
+function Shape:getNumCorners()
+	return #self.corners
+end
 
-
+function Shape:checkLineHit( x, y )
+	for k = 1, #self.curves do
+		if self.curves[k]:checkLineHit( x, y, clickDist*2 ) then
+			return self.curves[k]
+		end
+	end
+end

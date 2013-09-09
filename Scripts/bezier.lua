@@ -14,6 +14,7 @@
 
 require("Scripts/middleclass")
 require("Scripts/misc")
+require("Scripts/shapeCollisions")
 
 Bezier = class('Bezier')
 
@@ -31,7 +32,6 @@ function Bezier:initialize( cPoints, segmentLength, width )
 	self:setSegmentLength( segmentLength or 5 )
 
 	self.lineWidth = width or 2
-	
 	self:update()
 end
 
@@ -132,8 +132,23 @@ function Bezier:setLineWidth( width )
 	self.lineWidth = width or 2
 end
 
-function Bezier:update()
+function Bezier:removeDoubles()
+	local toRemove = {}
+	-- find all doubles:
+	for k = 1, #self.points-1 do
+		if self.points[k].x == self.points[k+1].x and
+			self.points[k].y == self.points[k+1].y then
+			toRemove[#toRemove + 1] = k	-- save key to remove later
+		end
+	end
+	
+	-- remove all doubles:
+	for i = 1, #toRemove do
+		removeFromTbl( self.points, self.points[toRemove[i]] )
+	end
+end
 
+function Bezier:update()
 	-- Stay a line unless the intermediate points have been moved manually:
 	if not self.cPoints[2].hasBeenMoved and not self.cPoints[3].hasBeenMoved then
 		self.cPoints[2]:interpolate( self.cPoints[1], self.cPoints[4], 0.25 )
@@ -141,6 +156,8 @@ function Bezier:update()
 	end
 
 	self.points = calcCoefficients( self.cPoints, 0.5, self.segmentLength )
+	
+	self:removeDoubles()
 end
 
 function Bezier:draw( active, closed )
@@ -148,7 +165,7 @@ function Bezier:draw( active, closed )
 	love.graphics.setLineWidth( self.lineWidth )
 	
 	if closed then
-		love.graphics.setColor(255,255,125, 255)
+		love.graphics.setColor(200,255,125, 255)
 	else
 		love.graphics.setColor(255,255,255, 255)
 	end
@@ -308,4 +325,17 @@ end
 
 function Bezier:setSnapToGrid( bool )
 	self.snapToGrid = bool
+end
+
+function Bezier:checkLineHit( x, y, dist )
+	local hit
+	local d
+	for k = 1, #self.points-1 do
+		d = distPointToLine({self.points[k], self.points[k+1]}, x, y )
+		if d and d < dist then
+			print("FOUND")
+			return true		-- a line segment was found: stop checking!
+		end
+	end
+	return false
 end

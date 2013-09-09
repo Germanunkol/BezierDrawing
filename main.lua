@@ -3,7 +3,6 @@ require("Scripts/shapeControl")
 local gridSize = 20
 local shapeControl
 
-
 function love.load()
 
 	love.filesystem.setIdentity("BezierDrawing")
@@ -38,6 +37,7 @@ function love.draw()
 	y = displayKey(10, y, "Click + Drag", "Move point")
 	y = displayKey(10, y, "Ctrl", "Snap to grid")
 	y = displayKey(10, y, "Shift", "Snap to point")
+	y = displayKey(10, y, "Right Click", "Remove point")
 	
 	shapeControl:draw()
 end
@@ -55,25 +55,15 @@ function love.update( dt )
 end
 
 function love.keypressed( key, unicode )
-	if key == "lctrl" then
-		shapeControl:setSnapToGrid( true )
-	else
-		if key == "lshift" then
-			shapeControl:setSnapToCPoints( true )
-		end
-	end
+	shapeControl:keypressed( key, unicode )
 	
 	if key == "f5" then
 		love.graphics.newScreenshot():encode("Screen" .. os.time() ..".png")
+		print("Saved screenshot.")
 	end
+	
 end
 
 function love.keyreleased( key, unicode )
-	if key == "lctrl" then
-		shapeControl:setSnapToGrid( false )
-	else
-		if key == "lshift" then
-			shapeControl:setSnapToCPoints( false )
-		end
-	end
+	shapeControl:keyreleased( key, unicode )
 end

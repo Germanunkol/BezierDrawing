@@ -13,6 +13,10 @@ function Point:move( x, y )
 	self.x = x
 	self.y = y
 	self.hasBeenMoved = true
+	
+	for k = 1, #self.curves do
+		self.curves[k]:update()
+	end
 end
 
 function Point:addCurve( c )
@@ -49,10 +53,6 @@ function Point:draw()
 			love.graphics.setColor(160,120,50, alpha)
 			love.graphics.point( self.x, self.y )
 		end
-	end
-	
-	for k = 1, #self.curves do
-		self.curves[k]:update()
 	end
 end
 
