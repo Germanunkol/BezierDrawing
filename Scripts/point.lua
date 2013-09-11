@@ -39,7 +39,7 @@ function Point:draw()
 			love.graphics.setColor(50,120,255, alpha)
 			love.graphics.circle( "line", self.x, self.y, 5 )
 		else
-			love.graphics.setPointSize(3)
+			love.graphics.setPointSize(4)
 			love.graphics.setColor(50,120,160, alpha)
 			love.graphics.point( self.x, self.y )
 		end

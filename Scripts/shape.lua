@@ -255,3 +255,44 @@ function Shape:checkLineHit( x, y )
 		end
 	end
 end
+
+function Shape:splitCurve( curve, dist )
+	-- local prev, next = curve.prev, curve.next
+	
+	local firstCurve, secondCurve, newCorner = curve:splitCurve( 0.5 )
+	
+	for k,p in pairs(firstCurve) do
+		print(p.class)
+		if not p.class or not p.class == Corner and not p.class == Point then
+			firstCurve[k] = Point:new(p.x, p.y)
+		end
+		print("\t",firstCurve[k].class)
+	end
+	for k,p in pairs(secondCurve) do
+		print(p.class)
+		if not p.class or not p.class == Corner and not p.class == Point then
+			secondCurve[k] = Point:new(p.x, p.y)
+		end
+		print("\t",secondCurve[k].class)
+	end
+	
+	firstCurve = Bezier:new( firstCurve, 5, 1 )
+	secondCurve = Bezier:new( secondCurve, 5, 1 )
+	
+	self.curves[#self.curves + 1] = firstCurve
+	self.curves[#self.curves + 1] = secondCurve
+	if curve.prev then
+		curve.prev.next = newCorner
+		curve.prev.bezierNext = firstCurve
+		newCorner.prev = curve.prev
+		newCorner.bezierPrev = firstCurve
+	end
+	if curve.next then
+		curve.next.prev = newCorner
+		curve.prev.bezierPrev = secondCurve
+		newCorner.next = curve.next
+		newCorner.bezierNext = secondCurve
+	end
+	
+	removeFromTbl( self.curves, curve )
+end

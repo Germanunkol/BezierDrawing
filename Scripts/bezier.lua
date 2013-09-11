@@ -26,6 +26,7 @@ function Bezier:initialize( cPoints, segmentLength, width )
 	self.numCPoints = #cPoints
 	
 	for k, p in pairs(cPoints) do
+		print("cl", p.class)
 		p:addCurve( self )
 	end
 	
@@ -65,7 +66,7 @@ local function tableConcat( A, B )
 	return C
 end
 
-local function calcCoefficients( points, t, segmentLength )
+local function split( points, t )
 
 	local tbl = {}
 	local n = #points
@@ -90,11 +91,20 @@ local function calcCoefficients( points, t, segmentLength )
 	for j=1,n do
 		first[j] = tbl[1][j]
 		second[n-j+1] = tbl[n-j+1][j]
-			
+	end
+	return first, second
+end
+
+local function subdivideRecursive( points, t, segmentLength )
+	local first, second = split( points, t )
+	
+	local firstSegLength, secondSegLength = 0, 0
+	local n = #points
+	for j=1,n do
 		-- check how long the line segments are:
 		if first[j-1] then
 			dist = distance(first[j-1], first[j])
-			
+		
 			if dist > firstSegLength then
 				firstSegLength = dist
 			end
@@ -108,10 +118,10 @@ local function calcCoefficients( points, t, segmentLength )
 	end
 	
 	if firstSegLength > segmentLength then
-		first = calcCoefficients( first, t, segmentLength )
+		first = subdivideRecursive( first, t, segmentLength )
 	end
 	if secondSegLength > segmentLength then
-		second = calcCoefficients( second, t, segmentLength )
+		second = subdivideRecursive( second, t, segmentLength )
 	end
 	return tableConcat(first, second)
 end
@@ -155,9 +165,17 @@ function Bezier:update()
 		self.cPoints[3]:interpolate( self.cPoints[1], self.cPoints[4], 0.75 )
 	end
 
-	self.points = calcCoefficients( self.cPoints, 0.5, self.segmentLength )
+	self.points = subdivideRecursive( self.cPoints, 0.5, self.segmentLength )
 	
 	self:removeDoubles()
+end
+
+function Bezier:splitCurve( t )
+	local first, second = split( self.cPoints, t)
+	self:removeDoubles()
+	local newCorner = Corner:new( second[1].x, second[1].y )
+	second[1] = newCorner
+	return first, second, newCorner
 end
 
 function Bezier:draw( active, closed )
@@ -180,7 +198,7 @@ function Bezier:draw( active, closed )
 		for k = 1, self.numCPoints-1 do
 			love.graphics.line(self.cPoints[k].x, self.cPoints[k].y, self.cPoints[k+1].x, self.cPoints[k+1].y)
 		end
-
+	
 		love.graphics.setPointStyle("rough")
 		for k = 2, self.numCPoints-1 do
 			if k == self.selected then
@@ -190,7 +208,7 @@ function Bezier:draw( active, closed )
 				love.graphics.setPointSize( 4 )
 				love.graphics.setColor(255,180,100, 255)
 			end
-				love.graphics.point( self.cPoints[k].x, self.cPoints[k].y )
+			love.graphics.point( self.cPoints[k].x, self.cPoints[k].y )
 		end
 	end
 	

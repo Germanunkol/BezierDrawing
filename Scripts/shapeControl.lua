@@ -37,15 +37,21 @@ function ShapeControl:click( x, y, button )
 					or hit == self.selShape:getSelectedCorner()
 					or hit.next == self.selShape:getSelectedCorner()
 					or hit.prev == self.selShape:getSelectedCorner() then
+					
 					if not self.selShape then
 						self.selShape = self:newShape()
 					end
-			
-					if self.snapToGrid then
-						x = math.floor((x+self.gridSize/2)/self.gridSize)*self.gridSize
-						y = math.floor((y+self.gridSize/2)/self.gridSize)*self.gridSize
+
+					local hitLine, dist = self.selShape:checkLineHit( x, y )
+					if hitLine then		-- if click hit line, then 
+						self.selShape:splitCurve( hitLine, dist )
+					else
+						if self.snapToGrid then
+							x = math.floor((x+self.gridSize/2)/self.gridSize)*self.gridSize
+							y = math.floor((y+self.gridSize/2)/self.gridSize)*self.gridSize
+						end
+						self.selShape:addCorner( x, y )
 					end
-					self.selShape:addCorner( x, y )
 				else
 			
 					self.selShape:addCurve( hit )
