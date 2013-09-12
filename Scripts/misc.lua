@@ -30,3 +30,7 @@ function tablePrint( tbl, level )
 		end
 	end
 end
+
+function pixelsToMeters( pxl )
+	return pxl/20
+end

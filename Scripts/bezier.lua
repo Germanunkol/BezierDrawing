@@ -32,7 +32,10 @@ function Bezier:initialize( cPoints, segmentLength, width )
 	self:setSegmentLength( segmentLength or 5 )
 
 	self.lineWidth = width or 2
+	
+	self.boundingBox = {}
 	self:update()
+	--self:setModified()
 end
 
 function Bezier:print()
@@ -74,6 +77,7 @@ local function split( points, t )
 		tbl[i][1] = points[i]
 	end
 
+	local size = {}
 	local x, y	
 	for j = 2,n+1 do
 		for i = 1,n-j+1 do
@@ -136,7 +140,8 @@ function Bezier:setSegmentLength( l )
 		res = 5
 	end
 	self.segmentLength = tonumber( l  )
-	self:update()	-- rerender points
+	-- self:update()	-- rerender points
+	self:setModified()
 end
 
 function Bezier:getSegmentLength( )
@@ -163,6 +168,30 @@ function Bezier:removeDoubles()
 	end
 end
 
+function Bezier:calcBoundingBox()
+	self.boundingBox.minX, self.boundingBox.minY = math.huge, math.huge
+	self.boundingBox.maxX, self.boundingBox.maxY = -math.huge, -math.huge
+	
+	for k = 1, #self.points do
+		self.boundingBox.minX = math.min( self.points[k].x, self.boundingBox.minX )
+		self.boundingBox.minY = math.min( self.points[k].y, self.boundingBox.minY )
+		self.boundingBox.maxX = math.max( self.points[k].x, self.boundingBox.maxX )
+		self.boundingBox.maxY = math.max( self.points[k].y, self.boundingBox.maxY )
+	end
+end
+
+function Bezier:getBoundingBox()
+	return self.boundingBox
+end
+
+function Bezier:setModified()
+	self.modified = true
+end
+
+function Bezier:getModified()
+	return self.modified
+end
+
 function Bezier:update()
 	-- Stay a line unless the intermediate points have been moved manually:
 	if not self.cPoints[2].hasBeenMoved and not self.cPoints[3].hasBeenMoved then
@@ -170,10 +199,13 @@ function Bezier:update()
 		self.cPoints[3]:interpolate( self.cPoints[1], self.cPoints[4], 0.75 )
 	end
 
+	-- Subdivide curve until all segments are smaller than self.segmentLength:
 	self.points = subdivideRecursive( self.cPoints, 0.5, self.segmentLength )
 	self.length = self.points.length
 	
 	self:removeDoubles()
+	self:calcBoundingBox()
+	self.modified = false
 end
 
 function Bezier:splitCurveAt( t )
@@ -190,10 +222,12 @@ end
 
 function Bezier:draw( active, closed )
 
-	love.graphics.setLineWidth( self.lineWidth )
+	love.graphics.setLineWidth( math.max( self.lineWidth/cam:getZoom(), 1) )
+	love.graphics.setLineStyle("smooth")
+	love.graphics.setPointStyle("smooth")
 	
 	if closed then
-		love.graphics.setColor(200,255,125, 255)
+		love.graphics.setColor(255,255,125, 255)
 	else
 		love.graphics.setColor(255,255,255, 255)
 	end
@@ -202,14 +236,13 @@ function Bezier:draw( active, closed )
 	end
 	
 	if active then
-		love.graphics.setLineWidth( 1 )
+		--love.graphics.setLineWidth( math.max( self.lineWidth/cam:getZoom(), 1) )
 		love.graphics.setColor(255,120,50, 75)
 
 		for k = 1, self.numCPoints-1 do
 			love.graphics.line(self.cPoints[k].x, self.cPoints[k].y, self.cPoints[k+1].x, self.cPoints[k+1].y)
 		end
 	
-		love.graphics.setPointStyle("rough")
 		for k = 2, self.numCPoints-1 do
 			if k == self.selected then
 				love.graphics.setPointSize( 6 )
@@ -265,7 +298,8 @@ function Bezier:addCPoint( P )
 		end
 	end
 	self.cPoints[self.numCPoints] = snapPoint or P
-	self:update()
+	--self:update()
+	self:setModified()
 	self:setSelected( self.numCPoints )		-- new points are always selected!
 	
 	P:addCurve( self )
@@ -288,7 +322,8 @@ function Bezier:removeCPoint( k )
 	end
 	self.cPoints[self.numCPoints] = nil
 	self.numCPoints = self.numCPoints - 1
-	self:update()
+	--self:update()
+	self:setModified()
 end
 
 function Bezier:startMoving()
@@ -326,20 +361,23 @@ function Bezier:movePoint( P )
 				self.cPoints[self.selected].y = P.y
 			end
 		end
-		self:update()
+		--self:update()
+		self:setModified()
 	end
 end
 
 function Bezier:setStartPoint( x, y )
 	if self.cPoints[1] then
 		self.cPoints[1].x, self.cPoints[1].y = x, y
-		self:update()
+		--self:update()
+		self:setModified()
 	end
 end
 function Bezier:setEndPoint( x, y )
 	if self.cPoints[#self.cPoints] then
 		self.cPoints[#self.cPoints].x, self.cPoints[#self.cPoints].y = x, y
-		self:update()
+		--self:update()
+		self:setModified()
 	end
 end
 

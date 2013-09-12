@@ -25,6 +25,7 @@ end
 
 function ShapeControl:click( x, y, button )
 	if button == "l" then
+		print(x, y)
 		if love.keyboard.isDown( "rctrl", "lctrl" ) then
 			if not self.selShape or not self.selShape.closed then
 				local hit
@@ -145,10 +146,9 @@ function ShapeControl:draw()
 	end
 end
 
-function ShapeControl:update()
+function ShapeControl:update( x, y )
 	if self.selShape then
 		if self.selShape:isMoving() then
-			local x, y = love.mouse.getPosition()
 			if self.snapToCPoints then
 				-- check if other points are close by:
 				local hit = self.selShape:checkHit( x, y )
@@ -170,6 +170,7 @@ function ShapeControl:update()
 			end
 			self.selShape:movePoint( x, y )
 		end
+		self.selShape:update()
 	end
 end
 

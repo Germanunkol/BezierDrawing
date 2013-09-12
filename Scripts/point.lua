@@ -15,7 +15,7 @@ function Point:move( x, y )
 	self.hasBeenMoved = true
 	
 	for k = 1, #self.curves do
-		self.curves[k]:update()
+		self.curves[k]:setModified()
 	end
 end
 

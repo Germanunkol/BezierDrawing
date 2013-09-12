@@ -11,6 +11,7 @@ function Shape:initialize()
 	self.corners = {}
 	self.curves = {}
 	self.selected = true
+	self.boundingBox = {}
 end
 
 function interpolate( P1, P2, amount )
@@ -61,6 +62,7 @@ function Shape:addCorner(x,y)
 	end
 	
 	self:selectCorner( newCorner )
+	self.modified = true
 end
 
 function Shape:addCurve( connectTo )
@@ -102,6 +104,7 @@ function Shape:addCurve( connectTo )
 		
 		self:selectCorner( nil )
 	end
+	self.modified = true
 end
 
 function Shape:selectCorner( new )
@@ -166,13 +169,14 @@ function Shape:removeCorner( p )
 	
 	removeFromTbl( self.curves, p.bezierPrev )
 	removeFromTbl( self.curves, p.bezierNext )
+	self.modified = true
 end
 
 function Shape:checkHit( x, y, ignore )
 
 	ignore = ignore or self.draggedPoint
 	local hit, dist
-	local minDist = clickDist
+	local minDist = clickDist/cam:getZoom()
 	local P = {x=x,y=y}
 	
 	for k = 1, #self.curves do
@@ -238,6 +242,28 @@ function Shape:draw()
 			c:draw()
 		end
 	end
+	if self.boundingBox then
+		love.graphics.setLineWidth( math.max( 1/cam:getZoom(), 1) )
+		love.graphics.setColor(255,120,50, 75)
+		local str
+		if self.boundingBox.minX and self.boundingBox.maxX ~= self.boundingBox.minX then
+			love.graphics.line( self.boundingBox.minX, self.boundingBox.maxY + 20,
+				self.boundingBox.maxX, self.boundingBox.maxY + 20)
+			str = pixelsToMeters(math.floor(self.boundingBox.maxX - self.boundingBox.minX)) .. " m"
+			love.graphics.print( str, self.boundingBox.maxX - love.graphics.getFont():getWidth(str),
+				self.boundingBox.maxY + 22)
+		end
+				
+		if self.boundingBox.minY and self.boundingBox.maxY ~= self.boundingBox.minY then
+			love.graphics.line( self.boundingBox.maxX + 20, self.boundingBox.minY,
+					self.boundingBox.maxX + 20, self.boundingBox.maxY)
+			str = pixelsToMeters(math.floor(self.boundingBox.maxY - self.boundingBox.minY)) .. " m"
+			love.graphics.print( str, self.boundingBox.maxX + 22,
+				self.boundingBox.maxY - love.graphics.getFont():getHeight())
+		end
+		
+		
+	end
 end
 
 function Shape:setSelected( bool )
@@ -250,6 +276,7 @@ end
 
 function Shape:checkLineHit( x, y )
 	local hit, t
+	print("line", x, y)
 	for k = 1, #self.curves do
 		hit, t = self.curves[k]:checkLineHit( x, y, clickDist*2 )
 		if hit then 
@@ -266,20 +293,16 @@ function Shape:splitCurve( curve, dist )
 	local moved = curve.cPoints[2].hasBeenMoved or curve.cPoints[3].hasBeenMoved
 	
 	for k,p in pairs(firstCurve) do
-		print(p.class)
 		if not p.class or not p.class == Corner and not p.class == Point then
 			firstCurve[k] = Point:new(p.x, p.y)
 		end
 		firstCurve[k].hasBeenMoved = moved
-		print("\t",curve.cPoints[2], curve.cPoints[2].hasBeenMoved, "end")
 	end
 	for k,p in pairs(secondCurve) do
-		print(p.class)
 		if not p.class or not p.class == Corner and not p.class == Point then
 			secondCurve[k] = Point:new(p.x, p.y)
 		end
 		secondCurve[k].hasBeenMoved = moved
-		print("\t",curve.cPoints[3], curve.cPoints[3].hasBeenMoved)
 	end
 	
 	firstCurve = Bezier:new( firstCurve, 5, 1 )
@@ -301,7 +324,31 @@ function Shape:splitCurve( curve, dist )
 		newCorner.bezierNext = secondCurve
 	end
 	
-	print("NEW CURVE AT CORNER:", newCorner.next, newCorner.prev)
 	self.corners[#self.corners+1] = newCorner
 	removeFromTbl( self.curves, curve )
+end
+
+function Shape:update()
+	local updated = false
+	for k = 1, #self.curves do
+		if self.curves[k]:getModified() then
+			self.curves[k]:update()
+			updated = true
+		end
+	end
+	if updated or self.modified then
+		self.boundingBox.minX = math.huge
+		self.boundingBox.minY = math.huge
+		self.boundingBox.maxX = -math.huge
+		self.boundingBox.maxY = -math.huge
+		local boundings
+		for k = 1, #self.curves do
+			boundings = self.curves[k]:getBoundingBox()
+			self.boundingBox.minX = math.min( boundings.minX, self.boundingBox.minX )
+			self.boundingBox.minY = math.min( boundings.minY, self.boundingBox.minY )
+			self.boundingBox.maxX = math.max( boundings.maxX, self.boundingBox.maxX )
+			self.boundingBox.maxY = math.max( boundings.maxY, self.boundingBox.maxY )
+		end
+		self.modified = false
+	end
 end
