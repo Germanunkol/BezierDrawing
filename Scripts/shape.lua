@@ -249,9 +249,11 @@ function Shape:getNumCorners()
 end
 
 function Shape:checkLineHit( x, y )
+	local hit, t
 	for k = 1, #self.curves do
-		if self.curves[k]:checkLineHit( x, y, clickDist*2 ) then
-			return self.curves[k]
+		hit, t = self.curves[k]:checkLineHit( x, y, clickDist*2 )
+		if hit then 
+			return self.curves[k], t
 		end
 	end
 end
@@ -259,21 +261,25 @@ end
 function Shape:splitCurve( curve, dist )
 	-- local prev, next = curve.prev, curve.next
 	
-	local firstCurve, secondCurve, newCorner = curve:splitCurve( 0.5 )
+	local firstCurve, secondCurve, newCorner = curve:splitCurveAt( dist/curve.length )
+	
+	local moved = curve.cPoints[2].hasBeenMoved or curve.cPoints[3].hasBeenMoved
 	
 	for k,p in pairs(firstCurve) do
 		print(p.class)
 		if not p.class or not p.class == Corner and not p.class == Point then
 			firstCurve[k] = Point:new(p.x, p.y)
 		end
-		print("\t",firstCurve[k].class)
+		firstCurve[k].hasBeenMoved = moved
+		print("\t",curve.cPoints[2], curve.cPoints[2].hasBeenMoved, "end")
 	end
 	for k,p in pairs(secondCurve) do
 		print(p.class)
 		if not p.class or not p.class == Corner and not p.class == Point then
 			secondCurve[k] = Point:new(p.x, p.y)
 		end
-		print("\t",secondCurve[k].class)
+		secondCurve[k].hasBeenMoved = moved
+		print("\t",curve.cPoints[3], curve.cPoints[3].hasBeenMoved)
 	end
 	
 	firstCurve = Bezier:new( firstCurve, 5, 1 )
@@ -281,18 +287,21 @@ function Shape:splitCurve( curve, dist )
 	
 	self.curves[#self.curves + 1] = firstCurve
 	self.curves[#self.curves + 1] = secondCurve
-	if curve.prev then
-		curve.prev.next = newCorner
-		curve.prev.bezierNext = firstCurve
-		newCorner.prev = curve.prev
+	
+	if curve.cPoints[1] then
+		curve.cPoints[1].next = newCorner
+		curve.cPoints[1].bezierNext = firstCurve
+		newCorner.prev = curve.cPoints[1]
 		newCorner.bezierPrev = firstCurve
 	end
-	if curve.next then
-		curve.next.prev = newCorner
-		curve.prev.bezierPrev = secondCurve
-		newCorner.next = curve.next
+	if curve.cPoints[#curve.cPoints] then
+		curve.cPoints[#curve.cPoints].prev = newCorner
+		curve.cPoints[#curve.cPoints].bezierPrev = secondCurve
+		newCorner.next = curve.cPoints[#curve.cPoints]
 		newCorner.bezierNext = secondCurve
 	end
 	
+	print("NEW CURVE AT CORNER:", newCorner.next, newCorner.prev)
+	self.corners[#self.corners+1] = newCorner
 	removeFromTbl( self.curves, curve )
 end

@@ -6,7 +6,7 @@ end
 
 function distPointToLine( line, x, y )
 	if line[1].x == line[2].x and line[1].y == line[2].y then
-		print("Error: Not a line!")
+		print("Error: Not a line!", line[1].class)
 		return false
 	end
 	

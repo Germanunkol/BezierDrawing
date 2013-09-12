@@ -13,3 +13,20 @@ function removeFromTbl( tbl, elem )
 		end
 	end
 end
+
+-- prints tables recursively with nice indentation.
+function tablePrint( tbl, level )
+	level = level or 1
+	if level > 5 then return end	-- beware of loops!
+	
+	local indentation = string.rep("\t", level)
+	for k, v in pairs( tbl ) do 
+		if type(v) == "table" then
+			print (indentation, k .. " = {")
+			tablePrint( v, level + 1 )
+			print( indentation, "}")
+		else
+			print( indentation, k," =", v)
+		end
+	end
+end

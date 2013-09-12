@@ -25,7 +25,7 @@ end
 
 function ShapeControl:click( x, y, button )
 	if button == "l" then
-		if love.keyboard.isDown( "lalt", "ralt" ) then
+		if love.keyboard.isDown( "rctrl", "lctrl" ) then
 			if not self.selShape or not self.selShape.closed then
 				local hit
 				if self.selShape then
@@ -111,11 +111,11 @@ end
 
 
 function ShapeControl:keypressed( key, unicode )
-	if key == "lctrl" then
-		self:setSnapToGrid( true )
+	if key == "g" then
+		self:setSnapToGrid( not self:getSnapToGrid() )
 	else
-		if key == "lshift" then
-			self:setSnapToCPoints( true )
+		if key == "h" then
+			self:setSnapToCPoints( not self:getSnapToCPoints() )
 		end
 	end
 	
@@ -128,13 +128,14 @@ function ShapeControl:keypressed( key, unicode )
 end
 
 function ShapeControl:keyreleased( key, unicode )
-	if key == "lctrl" then
+--[[	if key == "lctrl" then
 		self:setSnapToGrid( false )
 	else
 		if key == "lshift" then
 			self:setSnapToCPoints( false )
 		end
 	end
+	]]--
 end
 
 
@@ -179,3 +180,5 @@ end
 function ShapeControl:setSnapToGrid( bool )
 	self.snapToGrid = bool
 end
+function ShapeControl:getSnapToCPoints( ) return self.snapToCPoints end
+function ShapeControl:getSnapToGrid( ) return self.snapToGrid end

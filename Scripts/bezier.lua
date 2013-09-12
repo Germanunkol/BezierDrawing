@@ -26,7 +26,6 @@ function Bezier:initialize( cPoints, segmentLength, width )
 	self.numCPoints = #cPoints
 	
 	for k, p in pairs(cPoints) do
-		print("cl", p.class)
 		p:addCurve( self )
 	end
 	
@@ -99,21 +98,24 @@ local function subdivideRecursive( points, t, segmentLength )
 	local first, second = split( points, t )
 	
 	local firstSegLength, secondSegLength = 0, 0
+	first.length, second.length = 0, 0
+	
 	local n = #points
 	for j=1,n do
 		-- check how long the line segments are:
 		if first[j-1] then
 			dist = distance(first[j-1], first[j])
-		
 			if dist > firstSegLength then
 				firstSegLength = dist
 			end
+			first.length = first.length + dist -- sum up length of line
 		end
 		if second[n-j+2] then
 			dist = distance(second[n-j+1], second[n-j+2])
 			if dist > secondSegLength then
 				secondSegLength = dist
 			end
+			second.length = second.length + dist -- sum up length of line
 		end
 	end
 	
@@ -123,7 +125,10 @@ local function subdivideRecursive( points, t, segmentLength )
 	if secondSegLength > segmentLength then
 		second = subdivideRecursive( second, t, segmentLength )
 	end
-	return tableConcat(first, second)
+	
+	local fullLine = tableConcat(first, second)
+	fullLine.length = first.length + second.length
+	return fullLine
 end
 
 function Bezier:setSegmentLength( l )
@@ -166,15 +171,20 @@ function Bezier:update()
 	end
 
 	self.points = subdivideRecursive( self.cPoints, 0.5, self.segmentLength )
+	self.length = self.points.length
 	
 	self:removeDoubles()
 end
 
-function Bezier:splitCurve( t )
+function Bezier:splitCurveAt( t )
 	local first, second = split( self.cPoints, t)
 	self:removeDoubles()
-	local newCorner = Corner:new( second[1].x, second[1].y )
+	
+	-- define corner for the point which connects the two lines:
+	local newCorner = Corner:new( first[#first].x, first[#first].y )
+	first[#first] = newCorner
 	second[1] = newCorner
+	
 	return first, second, newCorner
 end
 
@@ -348,12 +358,17 @@ end
 function Bezier:checkLineHit( x, y, dist )
 	local hit
 	local d
+	local segLength = 0
+	local t = 0
 	for k = 1, #self.points-1 do
 		d = distPointToLine({self.points[k], self.points[k+1]}, x, y )
+		segLength = distance( self.points[k], self.points[k+1] )
 		if d and d < dist then
 			print("FOUND")
-			return true		-- a line segment was found: stop checking!
+			t = t + segLength/2		-- return center of the hit segment
+			return true, t		-- a line segment was found: stop checking!
 		end
+		t = t + segLength
 	end
 	return false
 end
