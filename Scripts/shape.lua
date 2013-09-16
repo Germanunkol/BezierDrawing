@@ -2,6 +2,7 @@ require("Scripts/bezier")
 require("Scripts/middleclass")
 require("Scripts/corner")
 require("Scripts/misc")
+require("Scripts/polygon")
 
 local clickDist = 10
 
@@ -12,6 +13,10 @@ function Shape:initialize()
 	self.curves = {}
 	self.selected = true
 	self.boundingBox = {}
+	self.polygon = {}
+	self.triangles = {}
+	--self.finalCanvas = love.graphics.newCanvas()
+	--self.tempCanvas = love.graphics.newCanvas()
 end
 
 function interpolate( P1, P2, amount )
@@ -234,6 +239,19 @@ function Shape:movePoint( x, y )
 end
 
 function Shape:draw()
+	
+	--love.graphics.setCanvas(self.tempCanvas)
+	
+	if self.closed and not self.draggedPoint then
+		love.graphics.setColor(255,200,180, 75)
+		--for k, tr in pairs(self.triangles) do
+			--love.graphics.triangle("fill", unpack(tr))
+		--end
+		--print("now")
+		if self.filledPolygon then
+			love.graphics.polygon("fill", self.filledPolygon)
+		end
+	end
 	for k,c in pairs( self.curves ) do
 		c:draw( self.selected, self.closed )
 	end
@@ -242,6 +260,9 @@ function Shape:draw()
 			c:draw()
 		end
 	end
+	--love.graphics.setCanvas()
+	
+	--love.graphics.draw
 	if self.boundingBox then
 		love.graphics.setLineWidth( math.max( 1/cam:getZoom(), 1) )
 		love.graphics.setColor(255,120,50, 75)
@@ -261,8 +282,6 @@ function Shape:draw()
 			love.graphics.print( str, self.boundingBox.maxX + 22,
 				self.boundingBox.maxY - love.graphics.getFont():getHeight())
 		end
-		
-		
 	end
 end
 
@@ -328,15 +347,69 @@ function Shape:splitCurve( curve, dist )
 	removeFromTbl( self.curves, curve )
 end
 
+function Shape:fill()
+	local prev, next, new
+	local minAng = math.pi/10
+	--print("NOW")
+	for k = 1, #self.curves do
+		for i = 1, #self.curves[k].points do
+			--print("cp:", self.curves[k].points[i].x, self.curves[k].points[i].y, self.curves[k].points[i].class)
+			prev = self.polygon[#self.polygon]
+			new = {
+					x = self.curves[k].points[i].x,
+					y = self.curves[k].points[i].y
+			}
+			self.polygon[#self.polygon + 1] = new
+			new.prev = prev
+			if prev then
+				prev.next = new
+			end
+			--[[else
+				self.polygon[#self.polygon] = new
+				new.prev = prev.prev
+				if prev.prev then
+					prev.prev.next = new
+				end
+			end]]--
+		end
+	end
+
+	-- close loop:			
+	if self.polygon[#self.polygon-1] then
+		self.polygon[#self.polygon-1].next = self.polygon[1]
+		self.polygon[1].prev = self.polygon[#self.polygon-1]
+	end
+	self.polygon[#self.polygon] = nil
+	print("#polygon points:", #self.polygon)
+
+	--self.triangles = triangulate( self.polygon )
+	self.triangles = triangulateSimple( self.polygon )
+	print("#triangle points:", #self.triangles)
+	
+	self.filledPolygon = {}
+	for k = 1, #self.polygon do
+		self.filledPolygon[#self.filledPolygon+1] = self.polygon[k].x
+		self.filledPolygon[#self.filledPolygon+1] = self.polygon[k].y
+	end
+end
+
 function Shape:update()
-	local updated = false
+	if not self.lastUpdateTime then
+		self.lastUpdateTime = love.timer.getMicroTime()
+	else
+		if love.timer.getMicroTime() - self.lastUpdateTime < .01 then
+			return
+		end
+	end
+
+	--local updated = false
 	for k = 1, #self.curves do
 		if self.curves[k]:getModified() then
 			self.curves[k]:update()
-			updated = true
+			self.modified = true
 		end
 	end
-	if updated or self.modified then
+	if self.modified then
 		self.boundingBox.minX = math.huge
 		self.boundingBox.minY = math.huge
 		self.boundingBox.maxX = -math.huge
@@ -349,6 +422,16 @@ function Shape:update()
 			self.boundingBox.maxX = math.max( boundings.maxX, self.boundingBox.maxX )
 			self.boundingBox.maxY = math.max( boundings.maxY, self.boundingBox.maxY )
 		end
-		self.modified = false
+		
+		if self.closed then
+			self.polygon = {}
+			
+			if not self.draggedPoint then
+				
+				self:fill()
+				
+				self.modified = false
+			end
+		end
 	end
 end

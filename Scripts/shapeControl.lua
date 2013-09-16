@@ -5,9 +5,10 @@ require("Scripts/misc")
 
 ShapeControl = class("ShapeControl")
 
-function ShapeControl:initialize( gridSize )
+function ShapeControl:initialize( gridSize, canvasWidth, canvasHeight )
 	self.gridSize = gridSize or 10
-
+	self.canvasWidth = canvasWidth
+	self.canvasHeight = canvasHeight
 	self.selShape = nil
 	self.shapes = {}
 end
@@ -20,6 +21,7 @@ function ShapeControl:newShape()
 	local s = Shape:new()
 	
 	self.shapes[#self.shapes + 1] = s
+	self.waitedTime = 0
 	return s
 end
 
@@ -146,7 +148,7 @@ function ShapeControl:draw()
 	end
 end
 
-function ShapeControl:update( x, y )
+function ShapeControl:update( x, y, dt )
 	if self.selShape then
 		if self.selShape:isMoving() then
 			if self.snapToCPoints then
@@ -170,7 +172,11 @@ function ShapeControl:update( x, y )
 			end
 			self.selShape:movePoint( x, y )
 		end
-		self.selShape:update()
+		self.waitedTime = self.waitedTime + dt
+		if self.waitedTime > .1 then
+			self.selShape:update()
+			self.waitedTime = 0
+		end
 	end
 end
 

@@ -98,13 +98,19 @@ local function split( points, t )
 	return first, second
 end
 
-local function subdivideRecursive( points, t, segmentLength )
+local function subdivideRecursive( points, t, segmentAngle )
 	local first, second = split( points, t )
 	
 	local firstSegLength, secondSegLength = 0, 0
+	local firstMinAng, secondMinAng = math.huge, math.huge
 	first.length, second.length = 0, 0
+	local dist
+	
+	segmentAngle = segmentAngle or deg2rad(5)
+	--local segmentAngle = math.pi*segmentAngle/180
 	
 	local n = #points
+	--[[
 	for j=1,n do
 		-- check how long the line segments are:
 		if first[j-1] then
@@ -122,13 +128,39 @@ local function subdivideRecursive( points, t, segmentLength )
 			second.length = second.length + dist -- sum up length of line
 		end
 	end
-	
-	if firstSegLength > segmentLength then
-		first = subdivideRecursive( first, t, segmentLength )
+	]]--
+	local ang
+	for j=1,n-1 do
+		-- check how long the line segments are:
+			ang = 0
+			if first[j] and first[j+1] and first[j+2] then
+				ang = angBetweenPoints(first[j], first[j+1], first[j+2])
+			end
+			first[j+1].ang = ang
+			if math.abs(math.pi/2 - ang) < firstMinAng then
+				firstMinAng = math.abs(math.pi/2 - ang)
+			end
+			dist = distance(first[j], first[j+1])
+			first.length = first.length + dist -- sum up length of line
+			
+			ang = 0
+			if second[j] and second[j+1] and second[j+2] then
+				ang = angBetweenPoints(second[j], second[j+1], second[j+2])
+			end
+			if math.abs(math.pi/2 - ang) < secondMinAng then
+				secondMinAng = math.abs(math.pi/2 - ang)
+			end
+			dist = distance(second[n-j], second[n-j+1])
+			second.length = second.length + dist -- sum up length of line
 	end
-	if secondSegLength > segmentLength then
-		second = subdivideRecursive( second, t, segmentLength )
-	end
+		if firstMinAng < math.pi/2 - segmentAngle then
+	print("subdivide first:", segmentAngle, rad2deg(segmentAngle) )
+			first = subdivideRecursive( first, t, segmentAngle )
+		end
+		if secondMinAng < math.pi/2 - segmentAngle then
+	print("subdivide second:", segmentAngle, rad2deg(segmentAngle) )
+			second = subdivideRecursive( second, t, segmentAngle )
+		end
 	
 	local fullLine = tableConcat(first, second)
 	fullLine.length = first.length + second.length
@@ -154,6 +186,8 @@ end
 
 function Bezier:removeDoubles()
 	local toRemove = {}
+	
+	local remember = #self.points
 	-- find all doubles:
 	for k = 1, #self.points-1 do
 		if self.points[k].x == self.points[k+1].x and
@@ -166,6 +200,7 @@ function Bezier:removeDoubles()
 	for i = 1, #toRemove do
 		removeFromTbl( self.points, self.points[toRemove[i]] )
 	end
+	
 end
 
 function Bezier:calcBoundingBox()
@@ -199,8 +234,8 @@ function Bezier:update()
 		self.cPoints[3]:interpolate( self.cPoints[1], self.cPoints[4], 0.75 )
 	end
 
-	-- Subdivide curve until all segments are smaller than self.segmentLength:
-	self.points = subdivideRecursive( self.cPoints, 0.5, self.segmentLength )
+	-- Subdivide curve until all segments are smoothed out:
+	self.points = subdivideRecursive( self.cPoints, 0.5, deg2rad(10) ) --10 degrees
 	self.length = self.points.length
 	
 	self:removeDoubles()
@@ -233,6 +268,9 @@ function Bezier:draw( active, closed )
 	end
 	for k=1,#self.points-1 do
 		love.graphics.line( self.points[k].x, self.points[k].y, self.points[k+1].x, self.points[k+1].y )
+		--if self.points[k].ang then
+			--love.graphics.print( round(self.points[k].ang, 1), self.points[k].x, self.points[k].y)
+		--end
 	end
 	
 	if active then

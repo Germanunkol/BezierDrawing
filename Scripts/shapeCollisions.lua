@@ -1,9 +1,5 @@
 require("Scripts/misc")
 
-function distance( P1, P2 )
-	return math.sqrt((P1.x-P2.x)^2 + (P1.y-P2.y)^2)
-end
-
 function distPointToLine( line, x, y )
 	if line[1].x == line[2].x and line[1].y == line[2].y then
 		print("Error: Not a line!", line[1].class)

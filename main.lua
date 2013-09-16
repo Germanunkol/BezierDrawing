@@ -1,16 +1,19 @@
 require("Scripts/shapeControl")
 require("Scripts/camera")
 
+
 local gridSize = 20		-- 20 pixels is one meter
-local canvasWidth = 200
-local canvasHeight = 200
+local canvasWidth = 50
+local canvasHeight = 50
 local shapeControl
+
+pointsSave = {}
 
 function love.load()
 
 	love.filesystem.setIdentity("BezierDrawing")
 
-	shapeControl = ShapeControl:new(gridSize)
+	shapeControl = ShapeControl:new(gridSize, canvasWidth, canvasHeight )
 	
 	cam = Camera:new( .25, 2, gridSize*canvasWidth/2, gridSize*canvasHeight/2 )
 	
@@ -69,7 +72,14 @@ function love.draw()
 	
 	cam:set()
 	shapeControl:draw()
+	for k = 1, #pointsSave do
+		love.graphics.line( 0, 0, pointsSave[k].x, pointsSave[k].y )
+	end
 	cam:reset()
+	
+	-- local xPos, yPos = love.mouse.getPosition()
+	-- love.graphics.print( angBetweenPoints({x=xPos, y=yPos}, {x=love.graphics.getWidth()/2, y=love.graphics.getHeight()/2}, {x=love.graphics.getWidth()/2, y = 0}) /math.pi*180, 10, y + 20 )
+	
 end
 
 function love.mousepressed( x,y,button )
@@ -99,7 +109,7 @@ end
 
 function love.update( dt )
 	local x, y = cam:worldPos(love.mouse.getPosition())
-	shapeControl:update( x, y )
+	shapeControl:update( x, y, dt )
 	if love.mouse.isDown("m") then
 		cam:drag( love.mouse.getPosition() )
 	end
