@@ -9,7 +9,7 @@ function Corner:initialize( x, y )
 	Point.initialize( self, x, y ) -- Parent's function
 end
 
-function Corner:move( x, y )
+--[[function Corner:move( x, y )
 	if self.bezierNext then
 		self.bezierNext:update() --setEndPoint( x,  y )
 	end
@@ -17,7 +17,7 @@ function Corner:move( x, y )
 		self.bezierPrev:update() --setStartPoint( x, y )
 	end
 	Point.move( self, x, y ) -- Parent's function
-end
+end]]--
 
 function Corner:select()
 	self.selected = true

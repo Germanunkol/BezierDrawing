@@ -5,12 +5,16 @@ require("Scripts/misc")
 
 ShapeControl = class("ShapeControl")
 
+floodFillThread = nil
+
 function ShapeControl:initialize( gridSize, canvasWidth, canvasHeight )
 	self.gridSize = gridSize or 10
 	self.canvasWidth = canvasWidth
 	self.canvasHeight = canvasHeight
 	self.selShape = nil
 	self.shapes = {}
+	floodFillThread = love.thread.newThread("floodfill", "Scripts/floodfillThread.lua")
+	floodFillThread:start()
 end
 
 function ShapeControl:getSelected()
@@ -27,7 +31,6 @@ end
 
 function ShapeControl:click( x, y, button )
 	if button == "l" then
-		print(x, y)
 		if love.keyboard.isDown( "rctrl", "lctrl" ) then
 			if not self.selShape or not self.selShape.closed then
 				local hit
@@ -149,35 +152,39 @@ function ShapeControl:draw()
 end
 
 function ShapeControl:update( x, y, dt )
-	if self.selShape then
-		if self.selShape:isMoving() then
-			if self.snapToCPoints then
-				-- check if other points are close by:
-				local hit = self.selShape:checkHit( x, y )
+	for k = 1, #self.shapes do
+		if self.selShape and self.selShape == self.shapes[k] then
+			if self.selShape:isMoving() then
+				if self.snapToCPoints then
+					-- check if other points are close by:
+					local hit = self.selShape:checkHit( x, y )
 				
-				if hit then
-					x = hit.x
-					y = hit.y
+					if hit then
+						x = hit.x
+						y = hit.y
+					else
+						if self.snapToGrid then
+							x = math.floor((x+self.gridSize/2)/self.gridSize)*self.gridSize
+							y = math.floor((y+self.gridSize/2)/self.gridSize)*self.gridSize
+						end
+					end
 				else
 					if self.snapToGrid then
 						x = math.floor((x+self.gridSize/2)/self.gridSize)*self.gridSize
 						y = math.floor((y+self.gridSize/2)/self.gridSize)*self.gridSize
 					end
 				end
-			else
-				if self.snapToGrid then
-					x = math.floor((x+self.gridSize/2)/self.gridSize)*self.gridSize
-					y = math.floor((y+self.gridSize/2)/self.gridSize)*self.gridSize
-				end
+				self.selShape:movePoint( x, y )
 			end
-			self.selShape:movePoint( x, y )
 		end
-		self.waitedTime = self.waitedTime + dt
-		if self.waitedTime > .1 then
-			self.selShape:update()
-			self.waitedTime = 0
-		end
+		self.shapes[k]:update( dt )
 	end
+	
+	local err = floodFillThread:get("error")
+	local msg = floodFillThread:get("msg")
+	
+	if msg then print("FF (msg):", msg) end
+	if err then print("FF (error):", err) end
 end
 
 function ShapeControl:setSnapToCPoints( bool )

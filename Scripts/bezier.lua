@@ -21,7 +21,7 @@ Bezier = class('Bezier')
 local clickRadius = 15
 local gridSize = 30
 
-function Bezier:initialize( cPoints, segmentLength, width )
+function Bezier:initialize( cPoints, segmentAngle, width )
 	self.cPoints = cPoints
 	self.numCPoints = #cPoints
 	
@@ -29,7 +29,7 @@ function Bezier:initialize( cPoints, segmentLength, width )
 		p:addCurve( self )
 	end
 	
-	self:setSegmentLength( segmentLength or 5 )
+	self:setSegmentAngle( segmentAngle or 5 )
 
 	self.lineWidth = width or 2
 	
@@ -131,7 +131,7 @@ local function subdivideRecursive( points, t, segmentAngle )
 	]]--
 	local ang
 	for j=1,n-1 do
-		-- check how long the line segments are:
+		-- check the angle between line segments:
 			ang = 0
 			if first[j] and first[j+1] and first[j+2] then
 				ang = angBetweenPoints(first[j], first[j+1], first[j+2])
@@ -154,30 +154,29 @@ local function subdivideRecursive( points, t, segmentAngle )
 			second.length = second.length + dist -- sum up length of line
 	end
 		if firstMinAng < math.pi/2 - segmentAngle then
-	print("subdivide first:", segmentAngle, rad2deg(segmentAngle) )
 			first = subdivideRecursive( first, t, segmentAngle )
 		end
 		if secondMinAng < math.pi/2 - segmentAngle then
-	print("subdivide second:", segmentAngle, rad2deg(segmentAngle) )
 			second = subdivideRecursive( second, t, segmentAngle )
 		end
 	
 	local fullLine = tableConcat(first, second)
+	print("diff:", #first, #second, #fullLine)
 	fullLine.length = first.length + second.length
 	return fullLine
 end
 
-function Bezier:setSegmentLength( l )
+function Bezier:setSegmentAngle( l )
 	if not tonumber( l ) then
-		res = 5
+		l = 5
 	end
-	self.segmentLength = tonumber( l  )
+	self.segmentAngle = tonumber( l  )
 	-- self:update()	-- rerender points
 	self:setModified()
 end
 
-function Bezier:getSegmentLength( )
-	return self.segmentLength
+function Bezier:getSegmentAngle( )
+	return self.segmentAngle
 end
 
 function Bezier:setLineWidth( width )
@@ -187,20 +186,21 @@ end
 function Bezier:removeDoubles()
 	local toRemove = {}
 	
-	local remember = #self.points
+	--local remember = #self.points
 	-- find all doubles:
 	for k = 1, #self.points-1 do
-		if self.points[k].x == self.points[k+1].x and
-			self.points[k].y == self.points[k+1].y then
+		--if self.points[k].x == self.points[k+1].x and
+			--self.points[k].y == self.points[k+1].y then
+		if distance(self.points[k], self.points[k+1]) < 0.01 then
 			toRemove[#toRemove + 1] = k	-- save key to remove later
 		end
 	end
 	
 	-- remove all doubles:
 	for i = 1, #toRemove do
+		print("\tremoved:", self.points[toRemove[i]])
 		removeFromTbl( self.points, self.points[toRemove[i]] )
-	end
-	
+	end	
 end
 
 function Bezier:calcBoundingBox()
@@ -235,10 +235,15 @@ function Bezier:update()
 	end
 
 	-- Subdivide curve until all segments are smoothed out:
-	self.points = subdivideRecursive( self.cPoints, 0.5, deg2rad(10) ) --10 degrees
+	self.points = subdivideRecursive( self.cPoints, 0.5, deg2rad(self.segmentAngle) )
 	self.length = self.points.length
 	
 	self:removeDoubles()
+	
+	if self.points[#self.points] ~= self.cPoints[#self.cPoints] then
+		self.points[#self.points+1] = self.cPoints[#self.cPoints]
+	end
+	
 	self:calcBoundingBox()
 	self.modified = false
 end
@@ -271,6 +276,7 @@ function Bezier:draw( active, closed )
 		--if self.points[k].ang then
 			--love.graphics.print( round(self.points[k].ang, 1), self.points[k].x, self.points[k].y)
 		--end
+			love.graphics.print( k, self.points[k].x, self.points[k].y)
 	end
 	
 	if active then

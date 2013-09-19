@@ -7,16 +7,34 @@ require("Scripts/polygon")
 local clickDist = 10
 
 Shape = class("Shape")
+local shapes = 0
+local function newShapeID()
+	shapes = shapes+1
+	return shapes -1
+end
 
 function Shape:initialize()
 	self.corners = {}
 	self.curves = {}
 	self.selected = true
+	self.maxAngle = 10
 	self.boundingBox = {}
 	self.polygon = {}
 	self.triangles = {}
+	self.shapeID = newShapeID()
+	self.outCol = {r=255,g=120,b=50,a=255}
+	self.lineWidth = 2
+	
 	--self.finalCanvas = love.graphics.newCanvas()
 	--self.tempCanvas = love.graphics.newCanvas()
+	self:resetImage()
+end
+
+function Shape:resetImage()
+	self.image = {}
+	self.image.rendering = false
+	self.image.percent = 0
+	self.image.finished = false
 end
 
 function interpolate( P1, P2, amount )
@@ -44,7 +62,7 @@ function Shape:addCorner(x,y)
 			local P1 = interpolate( self.selectedCorner, newCorner, 0.25 )
 			local P2 = interpolate( self.selectedCorner, newCorner, 0.75 )
 			
-			local b = Bezier:new( {self.selectedCorner, P1, P2, newCorner}, 5, 1)
+			local b = Bezier:new( {self.selectedCorner, P1, P2, newCorner}, self.maxAngle, 1)
 			self.curves[#self.curves +1] = b
 			
 			self.selectedCorner.bezierNext = b
@@ -57,7 +75,7 @@ function Shape:addCorner(x,y)
 				local P1 = interpolate( self.selectedCorner, newCorner, 0.25 )
 				local P2 = interpolate( self.selectedCorner, newCorner, 0.75 )
 				
-				local b = Bezier:new( {newCorner, P1, P2, self.selectedCorner}, 5, 1)
+				local b = Bezier:new( {newCorner, P1, P2, self.selectedCorner}, self.maxAngle, 1)
 				self.curves[#self.curves +1] = b
 				
 				self.selectedCorner.bezierPrev = b
@@ -86,7 +104,7 @@ function Shape:addCurve( connectTo )
 			local P1 = interpolate( self.selectedCorner, connectTo, 0.25 )
 			local P2 = interpolate( self.selectedCorner, connectTo, 0.75 )
 			
-			local b = Bezier:new( {self.selectedCorner, P1, P2, connectTo}, 5, 1)
+			local b = Bezier:new( {self.selectedCorner, P1, P2, connectTo}, self.maxAngle, 1)
 			self.curves[#self.curves +1] = b
 			
 			self.selectedCorner.bezierNext = b
@@ -96,10 +114,10 @@ function Shape:addCurve( connectTo )
 				self.selectedCorner.prev = connectTo
 				connectTo.next = self.selectedCorner
 				
-				local P1 = interpolate( self.selectedCorner, connectTo, 0.25 )
-				local P2 = interpolate( self.selectedCorner, connectTo, 0.75 )
+				local P1 = interpolate( connectTo, self.selectedCorner, 0.25 )
+				local P2 = interpolate( connectTo, self.selectedCorner, 0.75 )
 				
-				local b = Bezier:new( {connectTo, P1, P2, self.selectedCorner}, 5, 1)
+				local b = Bezier:new( {connectTo, P1, P2, self.selectedCorner}, self.maxAngle, 1)
 				self.curves[#self.curves +1] = b
 				
 				self.selectedCorner.bezierPrev = b
@@ -140,7 +158,7 @@ function Shape:removeCorner( p )
 		P3 = p.bezierNext:getCPoint( 2 )
 		P4 = p.next
 		
-		local b = Bezier:new( { P1, P2, P3, P4 }, 5, 1)
+		local b = Bezier:new( { P1, P2, P3, P4 }, self.maxAngle, 1)
 		self.curves[#self.curves +1] = b
 		
 		P4.bezierPrev = b
@@ -241,23 +259,27 @@ end
 function Shape:draw()
 	
 	--love.graphics.setCanvas(self.tempCanvas)
-	
-	if self.closed and not self.draggedPoint then
-		love.graphics.setColor(255,200,180, 75)
-		--for k, tr in pairs(self.triangles) do
-			--love.graphics.triangle("fill", unpack(tr))
-		--end
-		--print("now")
-		if self.filledPolygon then
-			love.graphics.polygon("fill", self.filledPolygon)
+	love.graphics.setColor( 255,255,255,255 )
+	if self.image.img and not self.selected and self.boundingBox then
+		love.graphics.draw( self.image.img, self.boundingBox.minX-5, self.boundingBox.minY-5 )
+		love.graphics.setColor(255,255,255,255)
+		love.graphics.setLineWidth(2)
+		for k,c in pairs( self.curves ) do
+			for i = 1,#c.points-1 do
+				--love.graphics.line(c.points[i].x, c.points[i].y, c.points[i+1].x, c.points[i+1].y)
+				if c.points[i].class == Corner then
+					love.graphics.print( c.points[i].x .."," .. c.points[i].y, c.points[i].x, c.points[i].y+10)
+				end
+			end
 		end
-	end
-	for k,c in pairs( self.curves ) do
-		c:draw( self.selected, self.closed )
-	end
-	if self.selected then
-		for k,c in pairs( self.corners ) do
-			c:draw()
+	else
+		for k,c in pairs( self.curves ) do
+			c:draw( self.selected, self.closed )
+		end
+		if self.selected then
+			for k,c in pairs( self.corners ) do
+				c:draw()
+			end
 		end
 	end
 	--love.graphics.setCanvas()
@@ -265,14 +287,14 @@ function Shape:draw()
 	--love.graphics.draw
 	if self.boundingBox then
 		love.graphics.setLineWidth( math.max( 1/cam:getZoom(), 1) )
-		love.graphics.setColor(255,120,50, 75)
+		love.graphics.setColor(255,120,50, 150)
 		local str
 		if self.boundingBox.minX and self.boundingBox.maxX ~= self.boundingBox.minX then
 			love.graphics.line( self.boundingBox.minX, self.boundingBox.maxY + 20,
-				self.boundingBox.maxX, self.boundingBox.maxY + 20)
+					self.boundingBox.maxX, self.boundingBox.maxY + 20)
 			str = pixelsToMeters(math.floor(self.boundingBox.maxX - self.boundingBox.minX)) .. " m"
 			love.graphics.print( str, self.boundingBox.maxX - love.graphics.getFont():getWidth(str),
-				self.boundingBox.maxY + 22)
+					self.boundingBox.maxY + 22)
 		end
 				
 		if self.boundingBox.minY and self.boundingBox.maxY ~= self.boundingBox.minY then
@@ -280,13 +302,25 @@ function Shape:draw()
 					self.boundingBox.maxX + 20, self.boundingBox.maxY)
 			str = pixelsToMeters(math.floor(self.boundingBox.maxY - self.boundingBox.minY)) .. " m"
 			love.graphics.print( str, self.boundingBox.maxX + 22,
-				self.boundingBox.maxY - love.graphics.getFont():getHeight())
+					self.boundingBox.maxY - love.graphics.getFont():getHeight())
+		end
+		
+		if self.image then
+			if self.image.rendering then
+				love.graphics.print( "Rendering (" .. math.floor( self.image.percent ) .. "%)", 
+					 self.boundingBox.minX,
+					 self.boundingBox.maxY + 22
+					)
+			end
 		end
 	end
 end
 
 function Shape:setSelected( bool )
 	self.selected = bool
+	if bool == true then
+		self:resetImage()
+	end
 end
 
 function Shape:getNumCorners()
@@ -324,8 +358,8 @@ function Shape:splitCurve( curve, dist )
 		secondCurve[k].hasBeenMoved = moved
 	end
 	
-	firstCurve = Bezier:new( firstCurve, 5, 1 )
-	secondCurve = Bezier:new( secondCurve, 5, 1 )
+	firstCurve = Bezier:new( firstCurve, self.maxAngle, 1 )
+	secondCurve = Bezier:new( secondCurve, self.maxAngle, 1 )
 	
 	self.curves[#self.curves + 1] = firstCurve
 	self.curves[#self.curves + 1] = secondCurve
@@ -347,11 +381,73 @@ function Shape:splitCurve( curve, dist )
 	removeFromTbl( self.curves, curve )
 end
 
-function Shape:fill()
+function Shape:startFill()
+	self.image.rendering = true
+	self.image.percent = 0
+	
+	local serialShape = self.shapeID
+	serialShape = serialShape .. "{"
+	serialShape = serialShape .. self.boundingBox.minX .. ","
+	serialShape = serialShape .. self.boundingBox.minY .. ","
+	serialShape = serialShape .. self.boundingBox.maxX .. ","
+	serialShape = serialShape .. self.boundingBox.maxY .. "}"
+	
+	local startPoint = self.curves[1].cPoints[1]
+	local curPoint = startPoint
+	local curve
+	repeat
+		curve = curPoint.bezierNext
+		for i = 1, #curve.points-1 do
+			serialShape	= serialShape .. 
+				math.floor(curve.points[i].x) .. "," ..
+				math.floor(curve.points[i].y) .. "|"
+		end
+		curPoint = curPoint.next
+	until curPoint == startPoint
+	
+	serialShape	= serialShape .. 
+		startPoint.x .. "," ..
+		startPoint.y .. "|"
+	
+	print(serialShape)
+	floodFillThread:set("newShape", serialShape)
+end
+
+function Shape:finishFill( img )
+	self.image.canvas = love.graphics.newCanvas( img:getWidth(), img:getHeight() )
+	love.graphics.setCanvas( self.image.canvas )
+	love.graphics.setLineStyle("smooth")
+	love.graphics.setLineWidth(self.lineWidth)
+
+	img = love.graphics.newImage( img )
+	love.graphics.setColor( 255,255,255,255 )
+	love.graphics.draw( img, 0, 0 )
+	love.graphics.setColor( self.outCol.r, self.outCol.g, self.outCol.b, self.outCol.a )
+
+	local a,b,c,d
+	for k,curve in pairs( self.curves ) do
+		for i = 1,#curve.points-1 do
+			a = curve.points[i].x - self.boundingBox.minX + 5
+			b = curve.points[i].y - self.boundingBox.minY + 5
+			c = curve.points[i+1].x - self.boundingBox.minX + 5
+			d = curve.points[i+1].y - self.boundingBox.minY + 5
+			love.graphics.line( a, b, c, d )
+		end
+	end
+	love.graphics.setCanvas()
+	
+
+	self.image.img = love.graphics.newImage( self.image.canvas:getImageData() )
+	self.image.rendering = false
+	self.image.finished = true
+end
+
+function Shape:fillOld()
 	local prev, next, new
 	local minAng = math.pi/10
 	--print("NOW")
-	for k = 1, #self.curves do
+	
+	--[[for k = 1, #self.curves do
 		for i = 1, #self.curves[k].points do
 			--print("cp:", self.curves[k].points[i].x, self.curves[k].points[i].y, self.curves[k].points[i].class)
 			prev = self.polygon[#self.polygon]
@@ -364,13 +460,6 @@ function Shape:fill()
 			if prev then
 				prev.next = new
 			end
-			--[[else
-				self.polygon[#self.polygon] = new
-				new.prev = prev.prev
-				if prev.prev then
-					prev.prev.next = new
-				end
-			end]]--
 		end
 	end
 
@@ -391,46 +480,51 @@ function Shape:fill()
 		self.filledPolygon[#self.filledPolygon+1] = self.polygon[k].x
 		self.filledPolygon[#self.filledPolygon+1] = self.polygon[k].y
 	end
+	]]--
 end
 
-function Shape:update()
-	if not self.lastUpdateTime then
-		self.lastUpdateTime = love.timer.getMicroTime()
-	else
-		if love.timer.getMicroTime() - self.lastUpdateTime < .01 then
-			return
-		end
-	end
+function Shape:update( dt )
 
 	--local updated = false
-	for k = 1, #self.curves do
-		if self.curves[k]:getModified() then
-			self.curves[k]:update()
-			self.modified = true
-		end
-	end
-	if self.modified then
-		self.boundingBox.minX = math.huge
-		self.boundingBox.minY = math.huge
-		self.boundingBox.maxX = -math.huge
-		self.boundingBox.maxY = -math.huge
-		local boundings
+	if self.selected then
 		for k = 1, #self.curves do
-			boundings = self.curves[k]:getBoundingBox()
-			self.boundingBox.minX = math.min( boundings.minX, self.boundingBox.minX )
-			self.boundingBox.minY = math.min( boundings.minY, self.boundingBox.minY )
-			self.boundingBox.maxX = math.max( boundings.maxX, self.boundingBox.maxX )
-			self.boundingBox.maxY = math.max( boundings.maxY, self.boundingBox.maxY )
+			if self.curves[k]:getModified() then
+				self.curves[k]:update()
+				self.modified = true
+				print("\ttest")
+			end
 		end
+		if self.modified then
+			self.boundingBox.minX = math.huge
+			self.boundingBox.minY = math.huge
+			self.boundingBox.maxX = -math.huge
+			self.boundingBox.maxY = -math.huge
+			local boundings
+			for k = 1, #self.curves do
+				boundings = self.curves[k]:getBoundingBox()
+				self.boundingBox.minX = math.min( boundings.minX, self.boundingBox.minX )
+				self.boundingBox.minY = math.min( boundings.minY, self.boundingBox.minY )
+				self.boundingBox.maxX = math.max( boundings.maxX, self.boundingBox.maxX )
+				self.boundingBox.maxY = math.max( boundings.maxY, self.boundingBox.maxY )
+			end
 		
-		if self.closed then
-			self.polygon = {}
-			
-			if not self.draggedPoint then
+			self.modified = false
+		end
+	else
+		if not self.image.finished then
+			if not self.image.rendering and self.closed then
+				for k = 1, #self.curves do
+					self.curves[k]:update()
+				end
+				self:startFill()
+			else
+				local percent = floodFillThread:get( self.shapeID .. "(%)")
+				if percent then self.image.percent = percent end
 				
-				self:fill()
-				
-				self.modified = false
+				local img = floodFillThread:get( self.shapeID .. "(img)")
+				if img then
+					self:finishFill( img )
+				end
 			end
 		end
 	end
