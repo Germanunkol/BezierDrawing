@@ -119,8 +119,7 @@ function love.keypressed( key, unicode )
 	shapeControl:keypressed( key, unicode )
 	
 	if key == "f5" then
-		love.graphics.newScreenshot():encode("Screen" .. os.time() ..".png")
-		print("Saved screenshot.")
+		screenshot()
 	end
 	
 end

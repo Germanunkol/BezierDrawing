@@ -82,3 +82,15 @@ function round(num, idp)
   local mult = 10^(idp or 0)
   return math.floor(num * mult + 0.5) / mult
 end
+
+function dropAlpha(x,y,r,g,b,a)
+	return r,g,b,255
+end
+
+function screenshot()
+	screen = love.graphics.newScreenshot()
+	screen:mapPixel(dropAlpha)	
+	screen:encode("Screen" .. os.time() ..".png")
+	
+	print("Saved screenshot.")
+end

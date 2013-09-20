@@ -161,7 +161,6 @@ local function subdivideRecursive( points, t, segmentAngle )
 		end
 	
 	local fullLine = tableConcat(first, second)
-	print("diff:", #first, #second, #fullLine)
 	fullLine.length = first.length + second.length
 	return fullLine
 end
@@ -198,7 +197,6 @@ function Bezier:removeDoubles()
 	
 	-- remove all doubles:
 	for i = 1, #toRemove do
-		print("\tremoved:", self.points[toRemove[i]])
 		removeFromTbl( self.points, self.points[toRemove[i]] )
 	end	
 end
@@ -267,7 +265,7 @@ function Bezier:draw( active, closed )
 	love.graphics.setPointStyle("smooth")
 	
 	if closed then
-		love.graphics.setColor(255,255,125, 255)
+		love.graphics.setColor(225,255,225, 255)
 	else
 		love.graphics.setColor(255,255,255, 255)
 	end
@@ -276,7 +274,6 @@ function Bezier:draw( active, closed )
 		--if self.points[k].ang then
 			--love.graphics.print( round(self.points[k].ang, 1), self.points[k].x, self.points[k].y)
 		--end
-			love.graphics.print( k, self.points[k].x, self.points[k].y)
 	end
 	
 	if active then

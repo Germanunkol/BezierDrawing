@@ -310,7 +310,7 @@ function Shape:draw()
 				love.graphics.print( "Rendering (" .. math.floor( self.image.percent ) .. "%)", 
 					 self.boundingBox.minX,
 					 self.boundingBox.maxY + 22
-					)
+				)
 			end
 		end
 	end
@@ -329,7 +329,6 @@ end
 
 function Shape:checkLineHit( x, y )
 	local hit, t
-	print("line", x, y)
 	for k = 1, #self.curves do
 		hit, t = self.curves[k]:checkLineHit( x, y, clickDist*2 )
 		if hit then 
@@ -409,7 +408,6 @@ function Shape:startFill()
 		startPoint.x .. "," ..
 		startPoint.y .. "|"
 	
-	print(serialShape)
 	floodFillThread:set("newShape", serialShape)
 end
 
@@ -491,7 +489,6 @@ function Shape:update( dt )
 			if self.curves[k]:getModified() then
 				self.curves[k]:update()
 				self.modified = true
-				print("\ttest")
 			end
 		end
 		if self.modified then
