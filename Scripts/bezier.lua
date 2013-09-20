@@ -227,8 +227,10 @@ end
 
 function Bezier:update()
 	-- Stay a line unless the intermediate points have been moved manually:
-	if not self.cPoints[2].hasBeenMoved and not self.cPoints[3].hasBeenMoved then
+	if not self.cPoints[2].hasBeenMoved then
 		self.cPoints[2]:interpolate( self.cPoints[1], self.cPoints[4], 0.25 )
+	end
+	if not self.cPoints[3].hasBeenMoved then
 		self.cPoints[3]:interpolate( self.cPoints[1], self.cPoints[4], 0.75 )
 	end
 

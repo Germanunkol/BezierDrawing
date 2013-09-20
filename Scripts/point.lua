@@ -18,6 +18,13 @@ function Point:move( x, y )
 		self.curves[k]:setModified()
 	end
 end
+function Point:reset()	--set point back to straight line
+	self.hasBeenMoved = false
+	
+	for k = 1, #self.curves do
+		self.curves[k]:setModified()
+	end
+end
 
 function Point:addCurve( c )
 	self.curves[#self.curves+1] = c

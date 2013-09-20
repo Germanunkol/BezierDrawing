@@ -20,16 +20,16 @@ local tmpPoints
 local seedFinishded,coveredPixels
 
 local outCol = {
-	r = 255,
-	g = 120,
-	b = 50,
-	a = 180
+	r = 250,
+	g = 250,
+	b = 250,
+	a = 250
 }
 local insCol = {
-	r = 170,
-	g = 170,
+	r = 255,
+	g = 255,
 	b = 255,
-	a = 120
+	a = 255
 }
 
 thisThread:set("msg", "started")
@@ -219,13 +219,11 @@ function newScanlineSeed( shape, x, y )
 	}
 end
 
-globMsg = ""
 
 function scanlineFill( shape, seed )
 	local r,g,b,a, y
 
 	local covered = 0
-	globMsg = "d0"
 	if not seed.lineFilled then
 		-- check towards the top
 		
@@ -247,7 +245,6 @@ function scanlineFill( shape, seed )
 			covered = covered + 1
 		end
 		
-	globMsg = "d1"
 		y = seed.y
 		seed.maxY = shape.imageData:getHeight()-1
 		while y <= seed.maxY do
@@ -263,12 +260,10 @@ function scanlineFill( shape, seed )
 		
 		seed.lineFilled = true
 		
-	globMsg = "d2"
 	
 	-- Next, scan the neighbouring lines on the left and right side:
 	-- (first up, then down)
 	elseif not seed.leftCheckedUp then
-		thisThread:set("msg", "a" )
 		if seed.x > 0 then
 			y = seed.currentLeftUp or seed.y
 			while y > seed.minY do
@@ -286,9 +281,7 @@ function scanlineFill( shape, seed )
 		if y <= seed.minY then
 			seed.leftCheckedUp = true
 		end
-	globMsg = "d3"
 	elseif not seed.leftCheckedDown then
-		thisThread:set("msg", "b" )
 		if seed.x > 0 then
 			y = seed.currentLeftDown or seed.y
 			while y < seed.maxY do
@@ -306,9 +299,7 @@ function scanlineFill( shape, seed )
 		if y >= seed.maxY then
 			seed.leftCheckedDown = true
 		end
-	globMsg = "d4"
 	elseif not seed.rightCheckedUp then
-		thisThread:set("msg", "c" )
 		if seed.x < shape.imageData:getWidth()-1 then
 			y = seed.currentRightUp or seed.y
 			while y > seed.minY do
@@ -326,7 +317,6 @@ function scanlineFill( shape, seed )
 		if y <= seed.minY then
 			seed.rightCheckedUp = true
 		end
-	globMsg = "d5"
 	elseif not seed.rightCheckedDown then
 		if seed.x < shape.imageData:getWidth()-1 then
 			y = seed.currentRightDown or seed.y
@@ -342,11 +332,8 @@ function scanlineFill( shape, seed )
 		else
 			y = seed.maxY
 		end
-	globMsg = "d6"
 		if y >= seed.maxY then
-			thisThread:set("msg", "d" )
 			seed.rightCheckedDown = true
-	globMsg = "d7"
 			return true		-- done, checked in all directions!
 		end
 	end
@@ -547,11 +534,6 @@ while true do
 		seeds = shapeQueue[ID].seedList
 		seedFinishded, coveredPixels = scanlineFill( s, seeds[#seeds] )
 		if seedFinishded then
-			if #seeds == 1 then
-				s.imageData:setPixel( seeds[1].x, seeds[1].y, 255,0,0,255)
-				s.imageData:setPixel( seeds[1].x+1, seeds[1].y+1, 255,0,0,255)
-				s.imageData:setPixel( seeds[1].x-1, seeds[1].y-1, 255,0,0,255)
-			end
 			seeds[#seeds] = nil -- remove last seed!
 		end
 		
@@ -560,7 +542,6 @@ while true do
 			thisThread:set(ID .. "(%)", math.floor(100*s.pixelsFilled/shapeQueue[ID].pixels))
 		end
 		
-		thisThread:set("msg", #seeds .. " " .. globMsg)
 		if #seeds == 0 then
 			thisThread:set( "msg", "Done: " .. ID )
 			thisThread:set( ID .. "(img)", s.imageData )

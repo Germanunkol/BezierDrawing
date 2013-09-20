@@ -19,8 +19,11 @@ function love.load()
 	
 end
 
-function displayKey( x, y, redText, whiteText )
+function displayKey( x, y, redText, whiteText, noRed )
 	love.graphics.setColor(255,120,50, 255)
+	if noRed then
+		love.graphics.setColor(255,255,255, 255)
+	end
 	love.graphics.print(redText, 10, y)
 	love.graphics.setColor(255,255,255, 255)
 	love.graphics.print(whiteText, 15 + love.graphics.getFont():getWidth(redText), y)
@@ -62,13 +65,29 @@ function love.draw()
 	drawGrid2()
 	
 	local y = 10
-	y = displayKey(10, y, "", "FPS: " .. love.timer.getFPS())
-	--y = displayKey(10, y, "Esc", "Select none")
-	y = displayKey(10, y, "Alt + Click", "Add point")
-	y = displayKey(10, y, "Click + Drag", "Move point")
-	y = displayKey(10, y, "Ctrl", "Snap to grid")
-	y = displayKey(10, y, "Shift", "Snap to point")
-	y = displayKey(10, y, "Right Click", "Remove point")
+	y = displayKey(10, y, "FPS:", love.timer.getFPS(), true)
+	
+	if not shapeControl:getSelectedShape() then
+		y = displayKey(10, y, "Ctrl + Click", "New shape")
+		if shapeControl:getNumShapes() > 0 then
+			y = displayKey(10, y, "Click shape border", "Select shape")
+		end
+	else
+		y = displayKey(10, y, "Ctrl + Click", "Add point")
+		y = displayKey(10, y, "Click + Drag", "Move point")
+		y = displayKey(10, y, "Right click", "Remove corner")
+		if #shapeControl:getSelectedShape().curves > 0 then
+			y = displayKey(10, y, "Right click", "Reset control point")
+		end
+		y = y+10
+		y = displayKey(10, y, "Esc", "Deselect+Render")
+	end
+	y = love.graphics.getHeight() -20
+	if shapeControl:getSnapToGrid() then
+		y = displayKey(10, y, "G", "Snap to grid (is ON)")
+	else
+		y = displayKey(10, y, "G", "Snap to grid (is OFF)")
+	end
 	
 	cam:set()
 	shapeControl:draw()
@@ -94,7 +113,7 @@ function love.mousepressed( x,y,button )
 	end
 	if button == "l" or button == "r" then
 		x, y = cam:worldPos(x, y)
-		shapeControl:click( x, y, button )
+		shapeControl:click( x, y, button, cam:getZoom() )
 	end
 end
 

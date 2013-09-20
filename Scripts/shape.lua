@@ -23,6 +23,7 @@ function Shape:initialize()
 	self.triangles = {}
 	self.shapeID = newShapeID()
 	self.outCol = {r=255,g=120,b=50,a=255}
+	self.insCol = {r=170,g=170,b=255,a=200}
 	self.lineWidth = 2
 	
 	--self.finalCanvas = love.graphics.newCanvas()
@@ -267,9 +268,9 @@ function Shape:draw()
 		for k,c in pairs( self.curves ) do
 			for i = 1,#c.points-1 do
 				--love.graphics.line(c.points[i].x, c.points[i].y, c.points[i+1].x, c.points[i+1].y)
-				if c.points[i].class == Corner then
-					love.graphics.print( c.points[i].x .."," .. c.points[i].y, c.points[i].x, c.points[i].y+10)
-				end
+				--if c.points[i].class == Corner then
+					--love.graphics.print( c.points[i].x .."," .. c.points[i].y, c.points[i].x, c.points[i].y+10)
+				--end
 			end
 		end
 	else
@@ -327,10 +328,10 @@ function Shape:getNumCorners()
 	return #self.corners
 end
 
-function Shape:checkLineHit( x, y )
+function Shape:checkLineHit( x, y, zoom )
 	local hit, t
 	for k = 1, #self.curves do
-		hit, t = self.curves[k]:checkLineHit( x, y, clickDist*2 )
+		hit, t = self.curves[k]:checkLineHit( x, y, clickDist/2 )
 		if hit then 
 			return self.curves[k], t
 		end
@@ -418,7 +419,7 @@ function Shape:finishFill( img )
 	love.graphics.setLineWidth(self.lineWidth)
 
 	img = love.graphics.newImage( img )
-	love.graphics.setColor( 255,255,255,255 )
+	love.graphics.setColor( self.insCol.r, self.insCol.g, self.insCol.b, self.insCol.a )
 	love.graphics.draw( img, 0, 0 )
 	love.graphics.setColor( self.outCol.r, self.outCol.g, self.outCol.b, self.outCol.a )
 

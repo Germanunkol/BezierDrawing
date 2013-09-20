@@ -17,8 +17,11 @@ function ShapeControl:initialize( gridSize, canvasWidth, canvasHeight )
 	floodFillThread:start()
 end
 
-function ShapeControl:getSelected()
-	return shapeControl.selected
+function ShapeControl:getSelectedShape()
+	return self.selShape
+end
+function ShapeControl:getNumShapes()
+	return #self.shapes
 end
 
 function ShapeControl:newShape()
@@ -29,10 +32,10 @@ function ShapeControl:newShape()
 	return s
 end
 
-function ShapeControl:click( x, y, button )
+function ShapeControl:click( x, y, button, zoom )
 	if button == "l" then
 		if love.keyboard.isDown( "rctrl", "lctrl" ) then
-			if not self.selShape or not self.selShape.closed then
+			--if not self.selShape or not self.selShape.closed then
 				local hit
 				if self.selShape then
 					hit = self.selShape:click( x, y, button, true )
@@ -48,10 +51,10 @@ function ShapeControl:click( x, y, button )
 						self.selShape = self:newShape()
 					end
 
-					local hitLine, dist = self.selShape:checkLineHit( x, y )
+					local hitLine, dist = self.selShape:checkLineHit( x, y, zoom )
 					if hitLine then		-- if click hit line, then 
 						self.selShape:splitCurve( hitLine, dist )
-					else
+					elseif not self.selShape.closed then
 						if self.snapToGrid then
 							x = math.floor((x+self.gridSize/2)/self.gridSize)*self.gridSize
 							y = math.floor((y+self.gridSize/2)/self.gridSize)*self.gridSize
@@ -63,7 +66,7 @@ function ShapeControl:click( x, y, button )
 					self.selShape:addCurve( hit )
 			
 				end
-			end
+			--end
 		else
 			local hit
 			if self.selShape then
@@ -99,11 +102,15 @@ function ShapeControl:click( x, y, button )
 		if self.selShape then
 			hit = self.selShape:checkHit( x, y )
 		end
-		if hit and hit.class == Corner then
-			self.selShape:removeCorner( hit )
-			if self.selShape:getNumCorners() == 0 then
-				removeFromTbl( self.shapes, self.selShape )
-				self.selShape = nil
+		if hit then
+			if hit.class == Corner then
+				self.selShape:removeCorner( hit )
+				if self.selShape:getNumCorners() == 0 then
+					removeFromTbl( self.shapes, self.selShape )
+					self.selShape = nil
+				end
+			else	-- right click on control point should reset this control point!
+				hit:reset()
 			end
 		end
 	end
