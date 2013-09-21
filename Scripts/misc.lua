@@ -83,6 +83,38 @@ function round(num, idp)
   return math.floor(num * mult + 0.5) / mult
 end
 
+
+----------------------------------
+-- line segment intersections:
+
+-- two segments given by M1 to M2 and K1 to K2:
+function segmentIntersections( M1, M2, K1, K2 )
+	local d1 = M2 - M1
+	local d2 = K2 - K1
+	
+	local denom = vectorDet( d1, d2 )
+	if denom == 0 then	-- parallel!
+		return nil
+	end
+	local numer1 = vectorDet((M1 - K1), d1)
+	if numer1 == 0 then
+		return M1
+	end
+	local numer2 = vectorDet((M1 - K1), d2)
+	if numer2 == 0 then
+		return K1
+	end
+	local t1 =  number1 / (denom)
+	local t2 =  number1 / (denom)
+	
+	if t1 >= 0 and t1 <= 1 and t2 >= 0 and t2 <= 1 then
+		return M1 + (d1*t1)
+	end
+end
+
+
+----------------------------------
+
 function dropAlpha(x,y,r,g,b,a)
 	return r,g,b,255
 end

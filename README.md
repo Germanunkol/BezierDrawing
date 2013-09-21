@@ -10,6 +10,8 @@ To Do:
 - Copy Shape
 - Box select
 - Rotate selection
-- Scale selection
+- Scale selection [Canceled]
 - Move selection
-- Fill shape
+- Fill shape [Done]
+- Change color/Material
+- Render normalmaps

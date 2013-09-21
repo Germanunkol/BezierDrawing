@@ -8,6 +8,9 @@ require('love.image')
 require('love.filesystem')
 require('love.graphics')
 require('love.timer')
+require('Scripts/misc')
+require('Scripts/point')
+
 thisThread = love.thread.getThread()
 
 local shapeQueue = {}
@@ -104,122 +107,16 @@ function drawOutline( shape )
 	end
 end
 
-function fill( shape, x )
-	local inside = false
-	local lastPixelWasSet, thisPixelIsSet = false, false
-	local r,g,b,a
-
-	local firstHit = false
-
-	for y = 0, shape.imageData:getHeight()-1 do
-		
-		thisPixelIsSet = false
-		
-		
-		--os.execute("sleep .1")
-		r,g,b,a = shape.imageData:getPixel( x, y )
-		
-		if a == outCol.a and r == outCol.r and g == outCol.g and b == outCol.b then
-			thisPixelIsSet = true
-			if not firstHit then	-- remember where the first hit occurred
-				firstHit = y
-			end
-		end
-		
-		if lastPixelWasSet then
-			if not thisPixelIsSet then		-- change from last pixel!
-				inside = not inside
-			end
-		end
-		
-		if inside and not thisPixelIsSet then
-			shape.imageData:setPixel( x, y, insCol.r,insCol.g,insCol.b,insCol.a )
-		end
-		
-		lastPixelWasSet = thisPixelIsSet
-		
-		-- If we end up at the bottom and the algo says we're still "inside", then something went
-		-- wrong. Invert until we get back to the first hit!
-		if y == shape.imageData:getHeight()-1 then
-			if inside and firstHit then
-				for y2 = y,firstHit, -1 do
-					r,g,b,a = shape.imageData:getPixel( x, y2 )
-					if r == insCol.r and g == insCol.g and b == insCol.b and a == insCol.a then
-						shape.imageData:setPixel( x, y2, 0,0,0,0 )
-					elseif a == 0 then
-						shape.imageData:setPixel( x, y, insCol.r,insCol.g,insCol.b,insCol.a )
-					elseif  a == outCol.a and r == outCol.r and g == outCol.g and b == outCol.b then
-						break
-					end
-					
-				end
-			end
-		end
-	end
-end
-
-
-function fill( shape, x )
-	local inside = false
-	local lastPixelWasSet, thisPixelIsSet = false, false
-	local r,g,b,a
-
-	local firstHit = false
-
-	for y = 0, shape.imageData:getHeight()-1 do
-		
-		thisPixelIsSet = false
-		
-		
-		--os.execute("sleep .1")
-		r,g,b,a = shape.imageData:getPixel( x, y )
-		
-		if a == outCol.a and r == outCol.r and g == outCol.g and b == outCol.b then
-			thisPixelIsSet = true
-			if not firstHit then	-- remember where the first hit occurred
-				firstHit = y
-			end
-		end
-		
-		if lastPixelWasSet then
-			if not thisPixelIsSet then		-- change from last pixel!
-				inside = not inside
-			end
-		end
-		
-		if inside and not thisPixelIsSet then
-			shape.imageData:setPixel( x, y, insCol.r,insCol.g,insCol.b,insCol.a )
-		end
-		
-		lastPixelWasSet = thisPixelIsSet
-		
-		-- If we end up at the bottom and the algo says we're still "inside", then something went
-		-- wrong. Invert until we get back to the first hit!
-		if y == shape.imageData:getHeight()-1 then
-			if inside and firstHit then
-				for y2 = y,firstHit, -1 do
-					r,g,b,a = shape.imageData:getPixel( x, y2 )
-					if r == insCol.r and g == insCol.g and b == insCol.b and a == insCol.a then
-						shape.imageData:setPixel( x, y2, 0,0,0,0 )
-					elseif a == 0 then
-						shape.imageData:setPixel( x, y, insCol.r,insCol.g,insCol.b,insCol.a )
-					elseif  a == outCol.a and r == outCol.r and g == outCol.g and b == outCol.b then
-						break
-					end
-					
-				end
-			end
-		end
-	end
-end
-
 function newScanlineSeed( shape, x, y )
 	shape.seedList[#shape.seedList+1] = {
 		x = x, y = y
 	}
 end
 
-
+-- Fills a shape recursively. The function interupts itself after every
+-- single line, so that other shapes can be worked on and communication
+-- with the main thread doesn't stop. Will plant new seeds if the line
+-- is finished processing.
 function scanlineFill( shape, seed )
 	local r,g,b,a, y
 
@@ -438,116 +335,184 @@ function isInsideShape( shape, x, y )
 	return false
 end
 
-while true do
-	newTime = love.timer.getMicroTime()
-	dt = newTime - lastTime
-	lastTime = newTime
-	
-	-- Check if there's a new shape in the queue. If so, put it in a table to process later:
-	newShape = thisThread:get("newShape")
-	if newShape then
-		pos = newShape:find( "{" )
-		if pos then
-			ID = newShape:sub( 1, pos - 1 )
-			newShape = newShape:sub( pos + 1 )
-			pos = newShape:find( "}" )
-			minX,minY,maxX,maxY = split(newShape:sub(1, pos-1), ",")
-			minX,minY,maxX,maxY = tonumber(minX),tonumber(minY),tonumber(maxX),tonumber(maxY)
-			-- minX,minY,maxX,maxY = math.floor(minX),math.floor(minY),math.floor(maxX),math.floor(maxY)
 
-			pointList = newShape:sub(pos+1)
-			
-			--tmpPoints = {split(pointList, "|")}
-			
-			tmpPoints = {}
-			pos = pointList:find("|")
-			while pos do
-				tmpPoints[#tmpPoints + 1] = pointList:sub(1, pos-1)
-				pointList = pointList:sub( pos+1 )
-				pos = pointList:find("|")
-			end
-			
-			-- disregard any earlier rendering for this shape:
-			shapeQueue[ID] = {
-				percent = 0,
-				minX = minX,
-				minY = minY,
-				maxX = maxX,
-				maxY = maxY,
-				points = {},
-				seedList = {},
-				currentLine = 0,
-				pixelsFilled = 0,
-			}
-			
-			
-			for k = 1, #tmpPoints do
-				shapeQueue[ID].points[k] = {}
-				shapeQueue[ID].points[k].x, shapeQueue[ID].points[k].y
-							= split(tmpPoints[k], ",")
-				shapeQueue[ID].points[k].x = tonumber( shapeQueue[ID].points[k].x ) - minX + 5
-				shapeQueue[ID].points[k].y = tonumber( shapeQueue[ID].points[k].y ) - minY + 5
-				shapeQueue[ID].points[k].x = math.floor( shapeQueue[ID].points[k].x )
-				shapeQueue[ID].points[k].y = math.floor( shapeQueue[ID].points[k].y )
-			end
-			
-			
-			msg = "New shape for: " .. ID ..
-				" " .. minX .. 
-				" " .. minY .. 
-				" " .. maxX .. 
-				" " .. maxY ..
-				"\n\tnumPoints:" .. #shapeQueue[ID].points
-			thisThread:set("msg", msg)
-			
-			drawOutline(shapeQueue[ID])
-			
-			shapeQueue[ID].width = shapeQueue[ID].imageData:getWidth()
-			shapeQueue[ID].height = shapeQueue[ID].imageData:getHeight()
-			shapeQueue[ID].pixels = (shapeQueue[ID].width-10)*(shapeQueue[ID].height-10)
-			
-			-- Find starting point inside shape. Choose random point and check if it's inside.
-			local a,b
-			repeat			
-				a = math.random(0, shapeQueue[ID].width-1)
-				b = math.random(0, shapeQueue[ID].height-1)
-			until isInsideShape( shapeQueue[ID], a, b )
-			
-			shapeQueue[ID].seedList[1] = {
-				x = a,
-				y = b,
-			}
+
+function checkShapeThickness( shape )
+	if not shape.thickness then
+		shape.thickness = {}
+		--shape.thickness
+	end
+
+end
+
+
+-- Make sure shape is oriented counter-clockwise!!
+function correctShapeDirection( shape )
+
+	local checked = false
+	local needsTurning = false
+	local dir, normal1, normal2, len
+	
+	local k = 1
+	while not checked and k < #shape.points-1 do
+		dir = shape.points[k+1] - shape.points[k]
+	
+		normal1 = Point:new( -dir.y, dir.x )
+		len = normal1:getLength()
+		normal1 = normal1*(3/len)	-- normalize to 3 pixels!
+		
+		normal2 = Point:new( dir.y, -dir.x )
+		len = normal2:getLength()
+		normal2 = normal2*(3/len)	-- normalize to 3 pixels!
+		
+		isInside1 = isInsideShape( shape,
+					shape.points[k].x + normal1.x, shape.points[k].y + normal1.y )
+		
+		isInside2 = isInsideShape( shape,
+					shape.points[k].x + normal2.x, shape.points[k].y + normal2.y )
+					
+		if isInside1 and not isInside2 then
+			checked = true
+		elseif not isInside1 and isInside2 then		-- the wrong normal is inside!!
+			checked = true
+			needsTurning = true
 		end
+		k = k+1
 	end
 	
-	for ID, s in pairs(shapeQueue) do
+	-- If the check above returned that the shape was clockwise, 
+	-- then turn it around to now be counter-clockwise.
+	if needsTurning then
+		local newList = {}
+		for k = 1, #shape.points do
+			newList[k] = shape.points[#shape.points + 1 - k]
+		end
+		shape.points = newList
+	end
+end
+
+function drawNormals( shape )
+
+	local dir, normal, len, endPoint
+	for k = 1, #shape.points-1 do
 	
-		--[[fill( s, s.currentLine )
-		s.currentLine = s.currentLine + 1
+		dir = shape.points[k+1] - shape.points[k]
+	
+		normal = Point:new( -dir.y, dir.x )
+		--len = normal1:getLength()
+		--normal1 = normal1*(3/len)	-- normal
 		
-		s.percent = 100 * ( s.width - s.currentLine) / s.width
-		thisThread:set(ID .. "(%)", s.percent)
+		endPoint = normal+shape.points[k]
 		
-		
-		]]--
-		--if s.currentLine >= s.width then
-		seeds = shapeQueue[ID].seedList
-		seedFinishded, coveredPixels = scanlineFill( s, seeds[#seeds] )
-		if seedFinishded then
-			seeds[#seeds] = nil -- remove last seed!
+		drawLine( shape.imageData, shape.points[k].x, shape.points[k].y, endPoint.x, endPoint.y)
+	end
+end
+	
+function runThread()
+	while true do
+		newTime = love.timer.getMicroTime()
+		dt = newTime - lastTime
+		lastTime = newTime
+	
+		-- Check if there's a new shape in the queue. If so, put it in a table to process later:
+		newShape = thisThread:get("newShape")
+		if newShape then
+			pos = newShape:find( "{" )
+			if pos then
+				ID = newShape:sub( 1, pos - 1 )
+				newShape = newShape:sub( pos + 1 )
+				pos = newShape:find( "}" )
+				minX,minY,maxX,maxY = split(newShape:sub(1, pos-1), ",")
+				minX,minY,maxX,maxY = tonumber(minX),tonumber(minY),tonumber(maxX),tonumber(maxY)
+				-- minX,minY,maxX,maxY = math.floor(minX),math.floor(minY),math.floor(maxX),math.floor(maxY)
+
+				pointList = newShape:sub(pos+1)
+			
+				--tmpPoints = {split(pointList, "|")}
+			
+				tmpPoints = {}
+				pos = pointList:find("|")
+				while pos do
+					tmpPoints[#tmpPoints + 1] = pointList:sub(1, pos-1)
+					pointList = pointList:sub( pos+1 )
+					pos = pointList:find("|")
+				end
+			
+				-- disregard any earlier rendering for this shape:
+				shapeQueue[ID] = {
+					percent = 0,
+					minX = minX,
+					minY = minY,
+					maxX = maxX,
+					maxY = maxY,
+					points = {},
+					seedList = {},
+					currentLine = 0,
+					pixelsFilled = 0,
+				}
+			
+			
+				for k = 1, #tmpPoints do
+					shapeQueue[ID].points[k] = Point:new( split(tmpPoints[k], ",") )
+					shapeQueue[ID].points[k].x = tonumber( shapeQueue[ID].points[k].x ) - minX + 5
+					shapeQueue[ID].points[k].y = tonumber( shapeQueue[ID].points[k].y ) - minY + 5
+					shapeQueue[ID].points[k].x = math.floor( shapeQueue[ID].points[k].x )
+					shapeQueue[ID].points[k].y = math.floor( shapeQueue[ID].points[k].y )
+				end
+			
+			
+				msg = "New shape for: " .. ID ..
+					" " .. minX .. 
+					" " .. minY .. 
+					" " .. maxX .. 
+					" " .. maxY ..
+					"\n\tnumPoints:" .. #shapeQueue[ID].points
+				thisThread:set("msg", msg)
+			
+				drawOutline(shapeQueue[ID])
+			
+				shapeQueue[ID].width = shapeQueue[ID].imageData:getWidth()
+				shapeQueue[ID].height = shapeQueue[ID].imageData:getHeight()
+				shapeQueue[ID].pixels = (shapeQueue[ID].width-10)*(shapeQueue[ID].height-10)
+			
+				-- Find starting point inside shape. Choose random point and check if it's inside.
+				local a,b
+				repeat			
+					a = math.random(0, shapeQueue[ID].width-1)
+					b = math.random(0, shapeQueue[ID].height-1)
+				until isInsideShape( shapeQueue[ID], a, b )
+			
+				shapeQueue[ID].seedList[1] = {
+					x = a,
+					y = b,
+				}
+				
+				correctShapeDirection( shapeQueue[ID] )
+				drawNormals( shapeQueue[ID] )
+			end
 		end
+	
+		for ID, s in pairs(shapeQueue) do
+			seeds = shapeQueue[ID].seedList
+			seedFinishded, coveredPixels = scanlineFill( s, seeds[#seeds] )
+			if seedFinishded then
+				seeds[#seeds] = nil -- remove last seed!
+			end
 		
-		if coveredPixels then
-			s.pixelsFilled = s.pixelsFilled + coveredPixels
-			thisThread:set(ID .. "(%)", math.floor(100*s.pixelsFilled/shapeQueue[ID].pixels))
-		end
+			if coveredPixels then
+				s.pixelsFilled = s.pixelsFilled + coveredPixels
+				thisThread:set(ID .. "(%)", math.floor(100*s.pixelsFilled/shapeQueue[ID].pixels))
+			end
 		
-		if #seeds == 0 then
-			thisThread:set( "msg", "Done: " .. ID )
-			thisThread:set( ID .. "(img)", s.imageData )
-			shapeQueue[ID] = nil
+			if #seeds == 0 then
+				thisThread:set( "msg", "Done: " .. ID )
+				thisThread:set( ID .. "(img)", s.imageData )
+				shapeQueue[ID] = nil
+			end
 		end
 	end
 end
 
+
+runThread()		-- start the whole process
 

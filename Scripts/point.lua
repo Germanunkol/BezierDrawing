@@ -1,4 +1,5 @@
 require("Scripts/misc")
+require("Scripts/middleclass")
 
 Point = class("Point")
 
@@ -63,4 +64,23 @@ function Point:draw()
 	end
 end
 
+-- metamethods:
+
+function Point:__sub( second )
+	return Point:new( self.x - second.x, self.y - second.y )
+end
+
+function Point:__add( second )
+	return Point:new( self.x + second.x, self.y + second.y )
+end
+
+function Point:__mul( val )
+	if type(val) == "number" then
+		return Point:new( self.x*val, self.y*val )
+	end
+end
+
+function Point:getLength()
+	return math.sqrt(self.x^2 + self.y^2)
+end
 
