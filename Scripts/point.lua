@@ -80,6 +80,14 @@ function Point:__mul( val )
 	end
 end
 
+function Point:__tostring()
+	return "[" .. self.x .. "," .. self.y .. "] "
+end
+function Point:__concat()
+	return "[" .. self.x .. "," .. self.y .. "] "
+end
+
+
 function Point:getLength()
 	return math.sqrt(self.x^2 + self.y^2)
 end

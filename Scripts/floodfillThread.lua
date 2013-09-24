@@ -35,6 +35,13 @@ local insCol = {
 	a = 255
 }
 
+local col = {
+	r = 255,
+	g = 255,
+	b = 255,
+	a = 255
+}
+
 thisThread:set("msg", "started")
 
 local function split( str, sep )
@@ -48,8 +55,42 @@ function sign( a )
 	return ( a > 0 and 1 ) or ( a < 0 and -1 ) or 0
 end
 
+function clamp( a, b, c )
+	if a > c then return c
+	elseif a < b then return b
+	else return a
+	end
+end
+
+function setColor( r, g, b, a)
+	col.r, col.g, col.b, col.a = r, g, b, a
+end
+
+function alphaOverlayColor( imageData, x, y, r, g, b, a )
+	-- original values:
+	local ro, go, bo, ao = imageData:getPixel( x, y )
+	
+	a = a/255
+	ao = ao/255
+	
+	-- final values:
+	local af = a + (1-a)*ao
+	
+	local rf = (a*r + (1-a)*ao*ro)/af
+	local gf = (a*g + (1-a)*ao*go)/af
+	local bf = (a*b + (1-a)*ao*bo)/af
+	
+	imageData:setPixel( x, y, rf, gf, bf, af*255 )
+end
+
 function drawLine( imgData, x1, y1, x2, y2 )
-	--thisThread:set("msg", "line: " .. x1 .. " " .. y1 .. " " .. x2 .. " " .. y2 .. " ")
+	--thisThread:set("msg", "line: " .. x1 .. " " .. y1 .. " " .. x2 .. " " .. y2 .. " " .. col.r .. " " .. col.b .. " " ..col.g .. " " .. col.a .. " ")
+	
+	--[[x1 = math.floor(x1)
+	y1 = math.floor(y1)
+	x2 = math.floor(x2)
+	y2 = math.floor(y2)
+	]]--
 	
 	local dx = x2-x1
 	local dy = y2-y1
@@ -75,7 +116,9 @@ function drawLine( imgData, x1, y1, x2, y2 )
 	local y = y1
 	
 	
-	imgData:setPixel( x, y, outCol.r,outCol.g,outCol.b,outCol.a )
+	x = clamp(math.floor(x), 0, imgData:getWidth()-1)
+	y = clamp(math.floor(y), 0, imgData:getHeight()-1)
+	alphaOverlayColor( imgData, x, y, col.r, col.g, col.b, col.a )
 	local err = dx/2
 
 	for t=0,el do
@@ -93,14 +136,82 @@ function drawLine( imgData, x1, y1, x2, y2 )
 			y = y + pdy;
 		end
       
-		imgData:setPixel( x, y, outCol.r,outCol.g,outCol.b,outCol.a )
+		x = clamp(math.floor(x), 0, imgData:getWidth()-1)
+		y = clamp(math.floor(y), 0, imgData:getHeight()-1)
+		alphaOverlayColor( imgData, x, y, col.r, col.g, col.b, col.a )
    end
+end
+
+function plot( imgData, x, y, alpha )
+	alphaOverlayColor( imgData, x, y, col.r, col.g, col.b, alpha*255 )
+	--imgData:setPixel( x, y, col.r, col.g, col.b, alpha*255 )
+end
+
+function drawLineAA( imgData, x0, y0, x1, y1 )
+	local steep = math.abs(y1-y0) > math.abs(x1 - x0)
+	
+	if steep then
+		x0, y0 = y0, x0
+		x1, y1 = y1, x1
+	end
+	if x0 > x1 then
+		x0, x1 = x1, x0
+		y0, y1 = y1, y0
+	end
+	
+	local dx = x1 - x0
+	local dy = y1 - y0
+	local gradient = dy/dx
+	
+	     -- handle first endpoint
+     local xend = round(x0)
+     local yend = y0 + gradient * (xend - x0)
+     local xgap = rfpart(x0 + 0.5)
+     local xpxl1 = xend   --this will be used in the main loop
+     local ypxl1 = math.floor(yend)
+     if steep then
+         plot( imgData,ypxl1,   xpxl1, rfpart(yend) * xgap)
+         plot( imgData, ypxl1+1, xpxl1,  fpart(yend) * xgap)
+     else
+         plot( imgData, xpxl1, ypxl1  , rfpart(yend) * xgap)
+         plot( imgData, xpxl1, ypxl1+1,  fpart(yend) * xgap)
+     end
+     local intery = yend + gradient -- first y-intersection for the main loop
+ 
+     -- handle second endpoint
+     xend = round(x1)
+     yend = y1 + gradient * (xend - x1)
+     xgap = fpart(x1 + 0.5)
+     local xpxl2 = xend --this will be used in the main loop
+     local ypxl2 = math.floor(yend)
+     if steep then
+         plot( imgData,ypxl2,   xpxl2, rfpart(yend) * xgap)
+         plot( imgData, ypxl2+1, xpxl2,  fpart(yend) * xgap)
+     else
+         plot( imgData, xpxl2, ypxl2,  rfpart(yend) * xgap)
+         plot( imgData, xpxl2, ypxl2+1, fpart(yend) * xgap)
+     end
+ 
+     -- main loop
+ 
+     for x = xpxl1 + 1, xpxl2 - 1 do
+          if  steep then
+             plot( imgData, math.floor(intery)  , x, rfpart(intery))
+             plot( imgData, math.floor(intery)+1, x,  fpart(intery))
+         else
+             plot( imgData, x, math.floor (intery),  rfpart(intery))
+             plot( imgData, x, math.floor (intery)+1, fpart(intery))
+         end
+         intery = intery + gradient
+     end
 end
 
 function drawOutline( shape )
 	shape.imageData = love.image.newImageData(
 						shape.maxX - shape.minX + 10, shape.maxY - shape.minY + 10 )
-						
+	
+	setColor( outCol.r,outCol.g,outCol.b,outCol.a )
+	
 	for k = 1, #shape.points-1 do
 		drawLine( shape.imageData, shape.points[k].x, shape.points[k].y,
 							shape.points[k+1].x, shape.points[k+1].y)
@@ -125,7 +236,7 @@ function scanlineFill( shape, seed )
 		-- check towards the top
 		
 		r,g,b,a = shape.imageData:getPixel( seed.x, seed.y )
-		if (a == outCol.a and r == outCol.r and g == outCol.g and b == outCol.b) then
+		if (a ~= 0) then
 			return
 		end
 		
@@ -133,7 +244,7 @@ function scanlineFill( shape, seed )
 		seed.minY = 0
 		while y >= seed.minY do
 			r,g,b,a = shape.imageData:getPixel( seed.x, y )
-			if (a == outCol.a and r == outCol.r and g == outCol.g and b == outCol.b) then
+			if (a ~= 0) then
 				seed.minY = y
 				break
 			end
@@ -142,11 +253,11 @@ function scanlineFill( shape, seed )
 			covered = covered + 1
 		end
 		
-		y = seed.y
+		y = seed.y+1 -- don't check starting pos!
 		seed.maxY = shape.imageData:getHeight()-1
 		while y <= seed.maxY do
 			r,g,b,a =shape.imageData:getPixel( seed.x, y )
-			if (a == outCol.a and r == outCol.r and g == outCol.g and b == outCol.b) then
+			if (a ~= 0) then
 				seed.maxY = y
 				break			
 			end
@@ -276,8 +387,8 @@ function isInsideShape( shape, x, y )
 		--os.execute("sleep .1")
 		lastWasOnLine = thisIsOnLine
 	end
-		thisThread:set("msg", "intersectionsUp: " .. intersectionsUp)
-		os.execute("sleep .1")
+		--thisThread:set("msg", "intersectionsUp: " .. intersectionsUp)
+		--os.execute("sleep .1")
 	
 	local intersectionsDown = 0
 	lastWasOnLine, thisIsOnLine = false, false
@@ -331,7 +442,7 @@ function isInsideShape( shape, x, y )
 		intersectionsLeft % 2 == 1 and intersectionsRight % 2 == 1 then
 		return true
 	end
-			thisThread:set("msg", intersectionsUp .. " " .. intersectionsDown .. " " .. intersectionsLeft .. " " .. intersectionsRight)
+	--thisThread:set("msg", intersectionsUp .. " " .. intersectionsDown .. " " .. intersectionsLeft .. " " .. intersectionsRight)
 	return false
 end
 
@@ -342,7 +453,6 @@ function checkShapeThickness( shape )
 		shape.thickness = {}
 		--shape.thickness
 	end
-
 end
 
 
@@ -389,24 +499,130 @@ function correctShapeDirection( shape )
 		end
 		shape.points = newList
 	end
+	shape.bool_directionCorrected = true
+end
+
+function calcNormals( shape )
+	for k = 1, #shape.points do
+	
+		local normal1, normal2
+		local P1, P2, P3
+	
+		local segDir1, segDir2
+		local startPoint, endPoint
+	
+		P2 = shape.points[k]
+	
+		if k == 1 then
+			P1 = shape.points[#shape.points-1]
+		else
+			P1 = shape.points[k-1]
+		end
+		segDir1 = P2 - P1
+		normal1 = Point:new( -segDir1.y, segDir1.x )
+		normal1 = normal1*(10/normal1:getLength())
+	
+		if k == #shape.points then
+			P3 = shape.points[2]
+		else
+			P3 = shape.points[k+1]
+		end
+		segDir2 = P3 - P2
+		normal2 = Point:new( -segDir2.y, segDir2.x )
+		normal2 = normal2*(10/normal2:getLength())
+	
+		--thisThread:set("msg", tostring(P1 + normal1) .. tostring(P2 + normal1) .. tostring(P2 + normal2) .. tostring(P3 + normal2))
+		local intersection = lineIntersections( P2 + normal1, P1 + normal1,
+												P2 + normal2, P3 + normal2)
+		
+		if intersection then
+			--[[setColor ( 255,0,0, 255)
+		drawLine( shape.imageData, (P2).x, (P2).y, (P2 + normal1).x, (P2 + normal1).y )
+			setColor ( 255,0,255, 255)
+		drawLine( shape.imageData, (P2).x, (P2).y, (P2 + normal2).x, (P2 + normal2).y )
+			]]--
+			shape.points[k].normal = intersection - shape.points[k]
+		else
+			shape.points[k].normal = normal1
+		end
+		
+		--shape.points[k].normal = shape.points[k].normal
+		shape.points[k].lineNormal = normal2
+	end
+	
+	--drawNormals( shape )
+	shape.bool_normalsCalculated = true
 end
 
 function drawNormals( shape )
 
-	local dir, normal, len, endPoint
-	for k = 1, #shape.points-1 do
+	local dir, normal, endPoint
+	for k = 1, #shape.points do
 	
-		dir = shape.points[k+1] - shape.points[k]
-	
-		normal = Point:new( -dir.y, dir.x )
-		--len = normal1:getLength()
-		--normal1 = normal1*(3/len)	-- normal
+		if shape.points[k].normal then
+			endPoint = shape.points[k] + shape.points[k].normal*20
+			
+			setColor( 0, 255, 0, 255 )
+			drawLine( shape.normalMap, shape.points[k].x, shape.points[k].y, endPoint.x, endPoint.y )
+		end
 		
-		endPoint = normal+shape.points[k]
-		
-		drawLine( shape.imageData, shape.points[k].x, shape.points[k].y, endPoint.x, endPoint.y)
 	end
 end
+
+function resetNormalMap(x, y, r, g, b, a)
+	if a > 0 then
+		return 128,128,255,255
+	else
+		return r, g, b, a
+	end
+end
+
+function drawNormalMap( shape )
+	if not shape.normalMap then
+		shape.normalMap = love.image.newImageData( shape.width, shape.height )
+		shape.normalMap:paste( shape.imageData, 0, 0 )
+		shape.normalMap:mapPixel( resetNormalMap )
+		shape.step_nM = 1
+	else
+		k = shape.step_nM
+
+		local P1, P2
+		
+		local thickness = 20
+		
+		local covered = 0
+		local x,y,z, len
+		while covered < thickness do
+		
+			--Color.rgb = Normal.xyz / 2.0 + 0.5;
+			
+			x = -shape.points[k].lineNormal.x
+			y = shape.points[k].lineNormal.y
+			z = covered/thickness
+		
+			len = math.sqrt(x*x+y*y+z*z)
+			x = (x/len)/2+0.5
+			y = (y/len)/2+0.5
+			z = (z/len)/2+0.5
+		
+			setColor( 255*x, 255*y, 255*z, 255*(thickness-covered)/thickness )
+			
+			P1 = shape.points[k] + shape.points[k].normal*(covered/thickness)
+			P2 = shape.points[k+1] + shape.points[k+1].normal*(covered/thickness)
+		
+			drawLineAA( shape.normalMap, P1.x, P1.y, P2.x, P2.y, 1 )
+			
+			covered = covered + 1
+		end
+
+		shape.step_nM = shape.step_nM + 1
+		
+		if shape.step_nM == #shape.points then
+			shape.bool_normalMap = true
+		end
+	end
+end
+
 	
 function runThread()
 	while true do
@@ -493,21 +709,38 @@ function runThread()
 		end
 	
 		for ID, s in pairs(shapeQueue) do
+		
 			seeds = shapeQueue[ID].seedList
-			seedFinishded, coveredPixels = scanlineFill( s, seeds[#seeds] )
-			if seedFinishded then
-				seeds[#seeds] = nil -- remove last seed!
-			end
-		
-			if coveredPixels then
-				s.pixelsFilled = s.pixelsFilled + coveredPixels
-				thisThread:set(ID .. "(%)", math.floor(100*s.pixelsFilled/shapeQueue[ID].pixels))
-			end
-		
-			if #seeds == 0 then
-				thisThread:set( "msg", "Done: " .. ID )
-				thisThread:set( ID .. "(img)", s.imageData )
-				shapeQueue[ID] = nil
+			if #seeds > 0 then
+				seedFinishded, coveredPixels = scanlineFill( s, seeds[#seeds] )
+				if seedFinishded then
+					seeds[#seeds] = nil -- remove last seed!
+				end
+				--thisThread:set( ID .. "(img)", s.imageData )
+				--os.execute("sleep .0001")
+				
+				if coveredPixels then
+					s.pixelsFilled = s.pixelsFilled + coveredPixels
+					thisThread:set(ID .. "(%)", math.floor(100*s.pixelsFilled/shapeQueue[ID].pixels))
+				end
+				
+			else
+				if not s.bool_directionCorrected then
+					correctShapeDirection( s )
+				elseif not s.bool_normalsCalculated then
+					calcNormals( s )
+				elseif not s.bool_normalMap then
+					drawNormalMap( s )
+				else
+					setColor(0,0,0,255)
+					drawLineAA( s.normalMap, 10, 10, s.imageData:getWidth()-10, s.imageData:getHeight()-10, 1)
+					drawLineAA( s.normalMap, s.normalMap:getWidth()/2, 10, s.normalMap:getWidth()/2-10, s.normalMap:getHeight()-10, 1)
+					thisThread:set( ID .. "(img)", s.imageData )
+					thisThread:set( ID .. "(nm)", s.normalMap )
+					thisThread:set(  ID .. "(done)", true )
+					shapeQueue[ID] = nil
+					thisThread:set( "msg", "Done: " .. ID )
+				end
 			end
 		end
 	end

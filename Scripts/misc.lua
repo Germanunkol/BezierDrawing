@@ -38,6 +38,9 @@ end
 local function vectorDet(x1,y1, x2,y2)
 	return x1*y2 - y1*x2
 end
+local function vectorCross( V, W )
+	return V.x*W.y - V.y*W.x
+end
 function areColinear(p, q, r, eps)
 	return math.abs(vectorDet(q.x-p.x, q.y-p.y,  r.x-p.x,r.y-p.y)) <= (eps or 1e-32)
 end
@@ -83,12 +86,18 @@ function round(num, idp)
   return math.floor(num * mult + 0.5) / mult
 end
 
+function fpart( num ) -- return fractional part of num:
+	return num - math.floor(num)
+end
+function rfpart( num ) -- return fractional part of num:
+	return 1 - fpart( num )
+end
 
 ----------------------------------
 -- line segment intersections:
 
 -- two segments given by M1 to M2 and K1 to K2:
-function segmentIntersections( M1, M2, K1, K2 )
+--[[function segmentIntersections( M1, M2, K1, K2 )
 	local d1 = M2 - M1
 	local d2 = K2 - K1
 	
@@ -110,6 +119,19 @@ function segmentIntersections( M1, M2, K1, K2 )
 	if t1 >= 0 and t1 <= 1 and t2 >= 0 and t2 <= 1 then
 		return M1 + (d1*t1)
 	end
+end]]--
+
+function lineIntersections( P, P2, Q, Q2 )
+	local r = P2 - P
+	local s = Q2 - Q
+	
+	local denom = vectorCross( r, s )
+	if denom == 0 then	-- parallel!
+		return nil
+	end
+	local numer1 = vectorCross( Q-P, s )
+	local t1 =  numer1 / (denom)
+	return P + (r*t1)
 end
 
 

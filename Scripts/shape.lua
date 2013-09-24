@@ -23,7 +23,9 @@ function Shape:initialize()
 	self.triangles = {}
 	self.shapeID = newShapeID()
 	self.outCol = {r=255,g=120,b=50,a=255}
-	self.insCol = {r=170,g=170,b=255,a=200}
+	--self.insCol = {r=170,g=170,b=255,a=200}
+	self.insCol = {r=255,g=255,b=170,a=200}
+	--self.insCol = {r=50,g=255,b=20,a=200}
 	self.lineWidth = 2
 	
 	--self.finalCanvas = love.graphics.newCanvas()
@@ -36,6 +38,12 @@ function Shape:resetImage()
 	self.image.rendering = false
 	self.image.percent = 0
 	self.image.finished = false
+	
+	self.shader = love.graphics.newPixelEffect(
+				love.filesystem.read("/Scripts/Shaders/normalmap.glsl") )
+	local x, y = love.graphics.getWidth(), love.graphics.getHeight()
+	self.shader:send( "Resolution", {x, y} )
+	
 end
 
 function interpolate( P1, P2, amount )
@@ -261,8 +269,19 @@ function Shape:draw()
 	
 	--love.graphics.setCanvas(self.tempCanvas)
 	love.graphics.setColor( 255,255,255,255 )
+	--if self.image.tempImage then
+		--love.graphics.draw( self.image.tempImage, self.boundingBox.minX-5, self.boundingBox.minY-5 )
+	--end
 	if self.image.img and not self.selected and self.boundingBox then
+	
+		local x, y = love.mouse.getPosition()
+		self.shader:send( "LightPos", {x, (love.graphics.getHeight() - y), .04} )
+		self.shader:send("nm", self.image.nm)
+	
+		love.graphics.setColor(255,255,255,255)
+		love.graphics.setPixelEffect(self.shader)
 		love.graphics.draw( self.image.img, self.boundingBox.minX-5, self.boundingBox.minY-5 )
+		--love.graphics.draw( self.image.nm, self.boundingBox.minX-5, self.boundingBox.minY-5 )
 		love.graphics.setColor(255,255,255,255)
 		love.graphics.setLineWidth(2)
 		for k,c in pairs( self.curves ) do
@@ -273,6 +292,7 @@ function Shape:draw()
 				--end
 			end
 		end
+		love.graphics.setPixelEffect()
 	else
 		for k,c in pairs( self.curves ) do
 			c:draw( self.selected, self.closed )
@@ -412,15 +432,21 @@ function Shape:startFill()
 	floodFillThread:set("newShape", serialShape)
 end
 
-function Shape:finishFill( img )
+function Shape:finishFill( img, nm )
+	nm:encode("nm.png")
 	self.image.canvas = love.graphics.newCanvas( img:getWidth(), img:getHeight() )
 	love.graphics.setCanvas( self.image.canvas )
 	love.graphics.setLineStyle("smooth")
 	love.graphics.setLineWidth(self.lineWidth)
 
 	img = love.graphics.newImage( img )
+	
+	self.image.nm = love.graphics.newImage( nm )
+	
 	love.graphics.setColor( self.insCol.r, self.insCol.g, self.insCol.b, self.insCol.a )
 	love.graphics.draw( img, 0, 0 )
+	--love.graphics.setColor( 255,255,255,255 )
+	--love.graphics.draw( nm, 0, 0 )
 	love.graphics.setColor( self.outCol.r, self.outCol.g, self.outCol.b, self.outCol.a )
 
 	local a,b,c,d
@@ -519,9 +545,18 @@ function Shape:update( dt )
 				local percent = floodFillThread:get( self.shapeID .. "(%)")
 				if percent then self.image.percent = percent end
 				
-				local img = floodFillThread:get( self.shapeID .. "(img)")
-				if img then
-					self:finishFill( img )
+				local done = floodFillThread:get( self.shapeID .. "(done)")
+				
+				if done then
+					local img = floodFillThread:demand( self.shapeID .. "(img)")
+					local nm = floodFillThread:demand( self.shapeID .. "(nm)")
+					print("new nm", self.shapeID)
+					self:finishFill( img, nm )
+				else
+					local img = floodFillThread:get( self.shapeID .. "(img)")
+					if img then
+					self.image.tempImage = love.graphics.newImage( img )
+					end
 				end
 			end
 		end
