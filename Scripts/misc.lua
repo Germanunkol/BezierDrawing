@@ -114,12 +114,31 @@ end
 		return K1
 	end
 	local t1 =  number1 / (denom)
-	local t2 =  number1 / (denom)
+	local t2 =  number2 / (denom)
 	
 	if t1 >= 0 and t1 <= 1 and t2 >= 0 and t2 <= 1 then
 		return M1 + (d1*t1)
 	end
 end]]--
+
+function segmentIntersections( P, P2, Q, Q2 )
+	local r = P2 - P
+	local s = Q2 - Q
+	
+	local denom = vectorCross( r, s )
+	if denom == 0 then	-- parallel!
+		return nil
+	end
+	local numer1 = vectorCross( Q-P, s )
+	local t1 =  numer1 / (denom)
+	local numer2 = vectorCross( Q-P, r )
+	local t2 =  numer2 / (denom)
+	
+	if t1 >= 0 and t1 <= 1 and t2 >= 0 and t2 <= 1 then
+		local x = P + (r*t1)
+		return x
+	end
+end
 
 function lineIntersections( P, P2, Q, Q2 )
 	local r = P2 - P

@@ -17,6 +17,7 @@ end
 function Shape:initialize()
 	self.corners = {}
 	self.curves = {}
+	self.editing = true
 	self.selected = true
 	self.maxAngle = 10
 	self.boundingBox = {}
@@ -25,7 +26,7 @@ function Shape:initialize()
 	self.shapeID = newShapeID()
 	self.outCol = {r=255,g=120,b=50,a=255}
 	--self.insCol = {r=170,g=170,b=255,a=200}
-	self.insCol = {r=255,g=255,b=170,a=200}
+	self.insCol = {r=255,g=255,b=170,a=255}
 	--self.insCol = {r=50,g=255,b=20,a=200}
 	self.lineWidth = 2
 	
@@ -48,6 +49,7 @@ function Shape:resetImage()
 end
 
 function interpolate( P1, P2, amount )
+
 	local x = P1.x + (P2.x-P1.x)*amount
 	local y = P1.y + (P2.y-P1.y)*amount
 	return Point:new( x, y )
@@ -266,6 +268,33 @@ function Shape:movePoint( x, y )
 	end
 end
 
+function Shape:drag( x, y )
+	self.offsetX, self.offsetY = x - self.startDragX, y - self.startDragY
+end
+
+function Shape:startDragging( x, y )
+	self.dragged = true
+	self.startDragX, self.startDragY = x, y
+end
+
+function Shape:stopDragging( x, y )
+	self.offsetX, self.offsetY = x - self.startDragX, y - self.startDragY
+	
+		print(self.offsetX, self.offsetY, self.startDragX, self.startDragY, x, y )
+	for k = 1, #self.curves do
+		for i = 1, #self.curves[k].cPoints do
+			self.curves[k].cPoints[i]:addOffset( self.offsetX, self.offsetY )
+		end
+	end
+	for k = 1, #self.curves do
+		for i = 1, #self.curves[k].cPoints do
+			self.curves[k].cPoints[i]:removeOffsetLock()
+		end
+	end
+	self.dragged = false
+	self.modified = true
+end
+
 function Shape:draw()
 	
 	--love.graphics.setCanvas(self.tempCanvas)
@@ -273,13 +302,28 @@ function Shape:draw()
 	--if self.image.tempImage then
 		--love.graphics.draw( self.image.tempImage, self.boundingBox.minX-5, self.boundingBox.minY-5 )
 	--end
-	if self.image.img and not self.selected and self.boundingBox then
+	if self.dragged then
+		love.graphics.push()
+		love.graphics.translate( self.offsetX, self.offsetY )
+	end
+		for k,c in pairs( self.curves ) do
+			c:draw( self.editing, self.closed )
+		end
+	
+	if self.image.img and not self.editing and self.boundingBox then
 	
 		local x, y = love.mouse.getPosition()
 		self.shader:send( "LightPos", {x, (love.graphics.getHeight() - y), .04} )
 		self.shader:send("nm", self.image.nm)
 	
-		love.graphics.setColor(255,255,255,255)
+		if self.selected then
+			love.graphics.setColor(255,255,255,200)
+		else
+			love.graphics.setColor(255,255,255,255)
+		end
+		if self.dragged then
+			love.graphics.setColor(255,0,0,255)
+		end
 		love.graphics.setPixelEffect(self.shader)
 		love.graphics.draw( self.image.img,
 							self.boundingBox.minX - IMG_PADDING,
@@ -297,10 +341,7 @@ function Shape:draw()
 		--end
 		love.graphics.setPixelEffect()
 	else
-		for k,c in pairs( self.curves ) do
-			c:draw( self.selected, self.closed )
-		end
-		if self.selected then
+		if self.editing then
 			for k,c in pairs( self.corners ) do
 				c:draw()
 			end
@@ -309,7 +350,7 @@ function Shape:draw()
 	--love.graphics.setCanvas()
 	
 	--love.graphics.draw
-	if self.boundingBox then
+	if self.boundingBox and self.selected or self.editing then
 		love.graphics.setLineWidth( math.max( 1/cam:getZoom(), 1) )
 		love.graphics.setColor(255,120,50, 150)
 		local str
@@ -338,14 +379,23 @@ function Shape:draw()
 			end
 		end
 	end
+	if self.dragged then
+		love.graphics.pop()
+	end
+end
+
+function Shape:setEditing( bool )
+	self.editing = bool
+	if bool == true then
+		self:resetImage()
+		self.selected = true
+	end
 end
 
 function Shape:setSelected( bool )
 	self.selected = bool
-	if bool == true then
-		self:resetImage()
-	end
 end
+
 
 function Shape:getNumCorners()
 	return #self.corners
@@ -479,7 +529,7 @@ end
 function Shape:update( dt )
 
 	--local updated = false
-	if self.selected then
+	if self.editing or self.modified then
 		for k = 1, #self.curves do
 			if self.curves[k]:getModified() then
 				self.curves[k]:update()
@@ -529,4 +579,40 @@ function Shape:update( dt )
 			end
 		end
 	end
+end
+
+function Shape:pointIsInside( x, y )
+
+	-- a point can only lie in a closed shape:
+	if not self.closed then return false end
+	
+	local P = Point:new( x, y )
+	local Pup, Pleft = Point:new( x, -99999 ), Point:new( -99999, y )
+	
+	local hitLeft, hitUp = 0,0
+	
+	for k, c in pairs(self.curves) do
+		for i = 1, #c.points-1 do
+			hit = segmentIntersections( P, Pup, c.points[i], c.points[i+1])
+			if hit then
+				hitUp = hitUp + 1
+			end
+			hit = segmentIntersections( P, Pleft, c.points[i], c.points[i+1])
+			if hit then
+				hitLeft = hitLeft + 1
+			end
+		end
+	end
+	if hitUp % 2 == 1 and hitLeft % 2 == 1 then
+	
+	love.graphics.setColor( 0, 255, 0, 60 )
+	love.graphics.line( P.x, P.y, Pup.x, Pup.y )
+	love.graphics.line( P.x, P.y, Pleft.x, Pleft.y )
+		return true
+	end
+	
+	love.graphics.setColor( 255, 0, 0, 30 )
+	love.graphics.line( P.x, P.y, Pup.x, Pup.y )
+	love.graphics.line( P.x, P.y, Pleft.x, Pleft.y )
+	return false
 end

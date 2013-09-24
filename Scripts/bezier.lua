@@ -84,7 +84,7 @@ local function split( points, t )
 			x = tbl[i][j-1].x*(1-t) + tbl[i+1][j-1].x*t
 			y = tbl[i][j-1].y*(1-t) + tbl[i+1][j-1].y*t
 			
-			tbl[i][j] = {x=x, y=y}
+			tbl[i][j] = Point:new(x, y)
 		end
 	end
 	
@@ -226,6 +226,10 @@ function Bezier:getModified()
 end
 
 function Bezier:update()
+	for k = 1, #self.cPoints do
+		print("before", k, self.cPoints[k])
+	end
+
 	-- Stay a line unless the intermediate points have been moved manually:
 	if not self.cPoints[2].hasBeenMoved then
 		self.cPoints[2]:interpolate( self.cPoints[1], self.cPoints[4], 0.25 )
@@ -238,14 +242,24 @@ function Bezier:update()
 	self.points = subdivideRecursive( self.cPoints, 0.5, deg2rad(self.segmentAngle) )
 	self.length = self.points.length
 	
+	for k = 1, #self.cPoints do
+		print("between 1", k, self.cPoints[k])
+	end
+	
 	self:removeDoubles()
 	
 	if self.points[#self.points] ~= self.cPoints[#self.cPoints] then
 		self.points[#self.points+1] = self.cPoints[#self.cPoints]
 	end
-	
+	for k = 1, #self.cPoints do
+		print("between 2", k, self.cPoints[k])
+	end
 	self:calcBoundingBox()
 	self.modified = false
+	
+	for k = 1, #self.cPoints do
+		print("after", k, self.cPoints[k])
+	end
 end
 
 function Bezier:splitCurveAt( t )
@@ -297,8 +311,6 @@ function Bezier:draw( active, closed )
 			love.graphics.point( self.cPoints[k].x, self.cPoints[k].y )
 		end
 	end
-	
-	love.graphics.setColor(255,255,255,255)
 end
 
 function Bezier:checkHit( clickPoint, ignore )		-- check if the click landed on a construction Point
@@ -382,7 +394,7 @@ end
 function Bezier:movePoint( P )
 	if self.selected and self.movingPoint then
 		if self.snapToCPoints then
-			k = self:checkHit( P, self.selected )	-- check if other buttons are close by
+			k = self:checkHit( P, self.selected )	-- check if other points are close by
 			if k then
 				self.cPoints[self.selected].x = self.cPoints[k].x
 				self.cPoints[self.selected].y = self.cPoints[k].y
@@ -445,7 +457,6 @@ function Bezier:checkLineHit( x, y, dist )
 		d = distPointToLine({self.points[k], self.points[k+1]}, x, y )
 		segLength = distance( self.points[k], self.points[k+1] )
 		if d and d < dist then
-			print("FOUND")
 			t = t + segLength/2		-- return center of the hit segment
 			return true, t		-- a line segment was found: stop checking!
 		end

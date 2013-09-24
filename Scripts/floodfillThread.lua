@@ -24,6 +24,14 @@ local seedFinishded,coveredPixels
 
 local PADDING = 25
 
+function profile( x )
+	if x < 0.5 then
+	return 0
+	else
+	return -1
+	end
+end
+
 local outCol = {
 	r = 250,
 	g = 250,
@@ -70,7 +78,15 @@ end
 
 function alphaOverlayColor( imageData, x, y, r, g, b, a )
 	-- original values:
-	local ro, go, bo, ao = imageData:getPixel( x, y )
+	local ro, go, bo, ao
+	
+	if x >= 0 and y >= 0 and
+		x < imageData:getWidth() and
+		y < imageData:getHeight() then
+			ro, go, bo, ao = imageData:getPixel( x, y )
+	else
+		return
+	end
 	
 	a = a/255
 	ao = ao/255
@@ -505,13 +521,18 @@ function correctShapeDirection( shape )
 end
 
 function calcNormals( shape )
+	
+	local normal1, normal2
+	local P1, P2, P3
+
+	local segDir1, segDir2
+	local startPoint, endPoint
+	local intersection
+	
+	local len = 0
+	
 	for k = 1, #shape.points do
 	
-		local normal1, normal2
-		local P1, P2, P3
-	
-		local segDir1, segDir2
-		local startPoint, endPoint
 	
 		P2 = shape.points[k]
 	
@@ -533,7 +554,7 @@ function calcNormals( shape )
 		normal2 = Point:new( -segDir2.y, segDir2.x )
 		normal2 = normal2*(10/normal2:getLength())
 		
-		local intersection = lineIntersections( P2 + normal1, P1 + normal1,
+		intersection = lineIntersections( P2 + normal1, P1 + normal1,
 												P2 + normal2, P3 + normal2)
 		
 		if intersection then
@@ -547,12 +568,58 @@ function calcNormals( shape )
 			shape.points[k].normal = normal1
 		end
 		
+		len = shape.points[k].normal:getLength()
+		if len > 40 then
+			shape.points[k].normal = shape.points[k].normal*(40/len)
+		end
+		
 		--shape.points[k].normal = shape.points[k].normal
 		shape.points[k].lineNormal = normal2
 		
 	end
 	
 	shape.bool_normalsCalculated = true
+end
+
+
+-- Checks all normals if they intersect each other. If so, the shorter one is collapsed to the
+-- longer one:
+function checkNormals( shape )
+	local intersection
+	local end1, end2, d1, d2
+	for k = 1, #shape.points do
+		end1 = shape.points[k] + shape.points[k].normal
+		for i = 1, #shape.points-1 do
+			if i ~= k then
+				end2 = shape.points[i] + shape.points[i].normal
+				intersection = segmentIntersections( shape.points[k], end1,
+												shape.points[i], end2 )
+				if intersection then
+				
+					
+				
+					if shape.points[k].normal:getLength()
+						< shape.points[i].normal:getLength() then
+						
+					
+						
+						shape.points[k].normal = intersection - shape.points[k]
+					else
+					
+					--[[setColor( 255, 0, 0, 255 )
+					drawLineAA( shape.imageData, shape.points[k].x, shape.points[k].y, end1.x, end1.y )
+					setColor( 0, 255, 0, 255 )
+					drawLineAA( shape.imageData, shape.points[i].x, shape.points[i].y, end2.x, end2.y )]]--
+					
+						shape.points[i].normal = intersection - shape.points[i]
+					end
+					-- recalculate!
+					end1 = shape.points[k] + shape.points[k].normal
+				end
+			end
+		end
+	end
+	shape.bool_normalsChecked = true
 end
 
 function drawNormals( shape )
@@ -584,45 +651,43 @@ function drawNormalMap( shape )
 		shape.step_nM = 1
 	else
 		k = shape.step_nM
-		for k = 1, #shape.points-1 do
-			local P1, P2
 		
-			local thickness = 20
+		local P1, P2
+	
+		local thickness = 20
+	
+		local covered = 0
+		local x,y,z, len
+		local dir = Point:new(-shape.points[k].lineNormal.x, shape.points[k].lineNormal.y)
+		while covered < thickness do
+	
+			--Color.rgb = Normal.xyz / 2.0 + 0.5;
 		
-			local covered = 0
-			local x,y,z, len
-			while covered < thickness do
+			x = dir.x
+			y = dir.y
+			z = dir:getLength()*(thickness-covered)/thickness
+	
+			len = math.sqrt(x*x+y*y+z*z)
+			x = (x/len)/2+0.5
+			y = (y/len)/2+0.5
+			z = (z/len)/2+0.5
+	
+			setColor( 255*x, 255*y, 255*z, 255 )
 		
-				--Color.rgb = Normal.xyz / 2.0 + 0.5;
-			
-				x = -shape.points[k].lineNormal.x
-				y = shape.points[k].lineNormal.y
-				z = covered/thickness
+			P1 = shape.points[k] + shape.points[k].normal*(covered/thickness)
+			P2 = shape.points[k+1] + shape.points[k+1].normal*(covered/thickness)
+	
+			drawLineAA( shape.normalMap, P1.x, P1.y, P2.x, P2.y, 1 )
 		
-				len = math.sqrt(x*x+y*y+z*z)
-				x = (x/len)/2+0.5
-				y = (y/len)/2+0.5
-				z = (z/len)/2+0.5
-		
-				setColor( 255*x, 255*y, 255*z, 255*(thickness-covered)/thickness )
-			
-				P1 = shape.points[k] + shape.points[k].normal*(covered/thickness)
-				P2 = shape.points[k+1] + shape.points[k+1].normal*(covered/thickness)
-		
-				drawLineAA( shape.normalMap, P1.x, P1.y, P2.x, P2.y, 1 )
-			
-				covered = covered + 1
-			end
-			--[[setColor( 0, 0, 0, 255 )
-			P1 = shape.points[k] + shape.points[k].normal
-			P2 = shape.points[k+1] + shape.points[k+1].normal
-			drawLineAA( shape.imageData, P1.x, P1.y, P2.x, P2.y, 1 )
-			]]--
-			
+			covered = covered + 1
 		end
+		--[[setColor( 0, 0, 0, 255 )
+		P1 = shape.points[k] + shape.points[k].normal
+		P2 = shape.points[k+1] + shape.points[k+1].normal
+		drawLineAA( shape.imageData, P1.x, P1.y, P2.x, P2.y, 1 )
+		]]--
+			
 		
-		shape.bool_normalMap = true
-
 		shape.step_nM = shape.step_nM + 1
 		
 		if shape.step_nM == #shape.points then
@@ -746,6 +811,8 @@ function runThread()
 					correctShapeDirection( s )
 				elseif not s.bool_normalsCalculated then
 					calcNormals( s )
+				elseif not s.bool_normalsChecked then
+					checkNormals( s )
 				elseif not s.bool_normalMap then
 					drawNormalMap( s )
 				else

@@ -66,6 +66,7 @@ function love.draw()
 	
 	local y = 10
 	y = displayKey(10, y, "FPS:", love.timer.getFPS(), true)
+	y = displayKey(10, y, "Zoom:", cam:getZoom(), true)
 	y = displayKey(10, y, "F5", "Screenshot")
 	
 	if not shapeControl:getSelectedShape() then
