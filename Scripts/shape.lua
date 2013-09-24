@@ -5,6 +5,7 @@ require("Scripts/misc")
 require("Scripts/polygon")
 
 local clickDist = 10
+local IMG_PADDING = 25
 
 Shape = class("Shape")
 local shapes = 0
@@ -280,18 +281,20 @@ function Shape:draw()
 	
 		love.graphics.setColor(255,255,255,255)
 		love.graphics.setPixelEffect(self.shader)
-		love.graphics.draw( self.image.img, self.boundingBox.minX-5, self.boundingBox.minY-5 )
+		love.graphics.draw( self.image.img,
+							self.boundingBox.minX - IMG_PADDING,
+							self.boundingBox.minY - IMG_PADDING )
 		--love.graphics.draw( self.image.nm, self.boundingBox.minX-5, self.boundingBox.minY-5 )
-		love.graphics.setColor(255,255,255,255)
-		love.graphics.setLineWidth(2)
-		for k,c in pairs( self.curves ) do
-			for i = 1,#c.points-1 do
+		--love.graphics.setColor(255,255,255,255)
+		--love.graphics.setLineWidth(2)
+		--for k,c in pairs( self.curves ) do
+			--for i = 1,#c.points-1 do
 				--love.graphics.line(c.points[i].x, c.points[i].y, c.points[i+1].x, c.points[i+1].y)
 				--if c.points[i].class == Corner then
 					--love.graphics.print( c.points[i].x .."," .. c.points[i].y, c.points[i].x, c.points[i].y+10)
 				--end
-			end
-		end
+			--end
+		--end
 		love.graphics.setPixelEffect()
 	else
 		for k,c in pairs( self.curves ) do
@@ -418,9 +421,15 @@ function Shape:startFill()
 	repeat
 		curve = curPoint.bezierNext
 		for i = 1, #curve.points-1 do
-			serialShape	= serialShape .. 
-				math.floor(curve.points[i].x) .. "," ..
-				math.floor(curve.points[i].y) .. "|"
+			-- never send doubles!
+			if i < 2 or
+				curve.points[i].x ~= curve.points[i-1].x or
+				curve.points[i].y ~= curve.points[i-1].y then
+				
+				serialShape	= serialShape .. 
+					curve.points[i].x .. "," ..
+					curve.points[i].y .. "|"
+			end
 		end
 		curPoint = curPoint.next
 	until curPoint == startPoint
@@ -452,10 +461,10 @@ function Shape:finishFill( img, nm )
 	local a,b,c,d
 	for k,curve in pairs( self.curves ) do
 		for i = 1,#curve.points-1 do
-			a = curve.points[i].x - self.boundingBox.minX + 5
-			b = curve.points[i].y - self.boundingBox.minY + 5
-			c = curve.points[i+1].x - self.boundingBox.minX + 5
-			d = curve.points[i+1].y - self.boundingBox.minY + 5
+			a = curve.points[i].x - self.boundingBox.minX + IMG_PADDING
+			b = curve.points[i].y - self.boundingBox.minY + IMG_PADDING
+			c = curve.points[i+1].x - self.boundingBox.minX + IMG_PADDING
+			d = curve.points[i+1].y - self.boundingBox.minY + IMG_PADDING
 			love.graphics.line( a, b, c, d )
 		end
 	end
@@ -465,47 +474,6 @@ function Shape:finishFill( img, nm )
 	self.image.img = love.graphics.newImage( self.image.canvas:getImageData() )
 	self.image.rendering = false
 	self.image.finished = true
-end
-
-function Shape:fillOld()
-	local prev, next, new
-	local minAng = math.pi/10
-	--print("NOW")
-	
-	--[[for k = 1, #self.curves do
-		for i = 1, #self.curves[k].points do
-			--print("cp:", self.curves[k].points[i].x, self.curves[k].points[i].y, self.curves[k].points[i].class)
-			prev = self.polygon[#self.polygon]
-			new = {
-					x = self.curves[k].points[i].x,
-					y = self.curves[k].points[i].y
-			}
-			self.polygon[#self.polygon + 1] = new
-			new.prev = prev
-			if prev then
-				prev.next = new
-			end
-		end
-	end
-
-	-- close loop:			
-	if self.polygon[#self.polygon-1] then
-		self.polygon[#self.polygon-1].next = self.polygon[1]
-		self.polygon[1].prev = self.polygon[#self.polygon-1]
-	end
-	self.polygon[#self.polygon] = nil
-	print("#polygon points:", #self.polygon)
-
-	--self.triangles = triangulate( self.polygon )
-	self.triangles = triangulateSimple( self.polygon )
-	print("#triangle points:", #self.triangles)
-	
-	self.filledPolygon = {}
-	for k = 1, #self.polygon do
-		self.filledPolygon[#self.filledPolygon+1] = self.polygon[k].x
-		self.filledPolygon[#self.filledPolygon+1] = self.polygon[k].y
-	end
-	]]--
 end
 
 function Shape:update( dt )

@@ -22,6 +22,8 @@ local minX,minY,maxX,maxY
 local tmpPoints
 local seedFinishded,coveredPixels
 
+local PADDING = 25
+
 local outCol = {
 	r = 250,
 	g = 250,
@@ -208,7 +210,7 @@ end
 
 function drawOutline( shape )
 	shape.imageData = love.image.newImageData(
-						shape.maxX - shape.minX + 10, shape.maxY - shape.minY + 10 )
+						shape.maxX - shape.minX + PADDING*2, shape.maxY - shape.minY + PADDING*2 )
 	
 	setColor( outCol.r,outCol.g,outCol.b,outCol.a )
 	
@@ -530,8 +532,7 @@ function calcNormals( shape )
 		segDir2 = P3 - P2
 		normal2 = Point:new( -segDir2.y, segDir2.x )
 		normal2 = normal2*(10/normal2:getLength())
-	
-		--thisThread:set("msg", tostring(P1 + normal1) .. tostring(P2 + normal1) .. tostring(P2 + normal2) .. tostring(P3 + normal2))
+		
 		local intersection = lineIntersections( P2 + normal1, P1 + normal1,
 												P2 + normal2, P3 + normal2)
 		
@@ -548,24 +549,22 @@ function calcNormals( shape )
 		
 		--shape.points[k].normal = shape.points[k].normal
 		shape.points[k].lineNormal = normal2
+		
 	end
 	
-	--drawNormals( shape )
 	shape.bool_normalsCalculated = true
 end
 
 function drawNormals( shape )
-
 	local dir, normal, endPoint
-	for k = 1, #shape.points do
 	
+	for k = 1, #shape.points do
 		if shape.points[k].normal then
-			endPoint = shape.points[k] + shape.points[k].normal*20
+			endPoint = shape.points[k] + shape.points[k].normal
 			
 			setColor( 0, 255, 0, 255 )
-			drawLine( shape.normalMap, shape.points[k].x, shape.points[k].y, endPoint.x, endPoint.y )
+			drawLine( shape.imageData, shape.points[k].x, shape.points[k].y, endPoint.x, endPoint.y )
 		end
-		
 	end
 end
 
@@ -585,35 +584,44 @@ function drawNormalMap( shape )
 		shape.step_nM = 1
 	else
 		k = shape.step_nM
-
-		local P1, P2
+		for k = 1, #shape.points-1 do
+			local P1, P2
 		
-		local thickness = 20
+			local thickness = 20
 		
-		local covered = 0
-		local x,y,z, len
-		while covered < thickness do
+			local covered = 0
+			local x,y,z, len
+			while covered < thickness do
 		
-			--Color.rgb = Normal.xyz / 2.0 + 0.5;
+				--Color.rgb = Normal.xyz / 2.0 + 0.5;
 			
-			x = -shape.points[k].lineNormal.x
-			y = shape.points[k].lineNormal.y
-			z = covered/thickness
+				x = -shape.points[k].lineNormal.x
+				y = shape.points[k].lineNormal.y
+				z = covered/thickness
 		
-			len = math.sqrt(x*x+y*y+z*z)
-			x = (x/len)/2+0.5
-			y = (y/len)/2+0.5
-			z = (z/len)/2+0.5
+				len = math.sqrt(x*x+y*y+z*z)
+				x = (x/len)/2+0.5
+				y = (y/len)/2+0.5
+				z = (z/len)/2+0.5
 		
-			setColor( 255*x, 255*y, 255*z, 255*(thickness-covered)/thickness )
+				setColor( 255*x, 255*y, 255*z, 255*(thickness-covered)/thickness )
 			
-			P1 = shape.points[k] + shape.points[k].normal*(covered/thickness)
-			P2 = shape.points[k+1] + shape.points[k+1].normal*(covered/thickness)
+				P1 = shape.points[k] + shape.points[k].normal*(covered/thickness)
+				P2 = shape.points[k+1] + shape.points[k+1].normal*(covered/thickness)
 		
-			drawLineAA( shape.normalMap, P1.x, P1.y, P2.x, P2.y, 1 )
+				drawLineAA( shape.normalMap, P1.x, P1.y, P2.x, P2.y, 1 )
 			
-			covered = covered + 1
+				covered = covered + 1
+			end
+			--[[setColor( 0, 0, 0, 255 )
+			P1 = shape.points[k] + shape.points[k].normal
+			P2 = shape.points[k+1] + shape.points[k+1].normal
+			drawLineAA( shape.imageData, P1.x, P1.y, P2.x, P2.y, 1 )
+			]]--
+			
 		end
+		
+		shape.bool_normalMap = true
 
 		shape.step_nM = shape.step_nM + 1
 		
@@ -670,10 +678,20 @@ function runThread()
 			
 				for k = 1, #tmpPoints do
 					shapeQueue[ID].points[k] = Point:new( split(tmpPoints[k], ",") )
-					shapeQueue[ID].points[k].x = tonumber( shapeQueue[ID].points[k].x ) - minX + 5
-					shapeQueue[ID].points[k].y = tonumber( shapeQueue[ID].points[k].y ) - minY + 5
-					shapeQueue[ID].points[k].x = math.floor( shapeQueue[ID].points[k].x )
-					shapeQueue[ID].points[k].y = math.floor( shapeQueue[ID].points[k].y )
+					shapeQueue[ID].points[k].x = tonumber( shapeQueue[ID].points[k].x )
+												- minX + PADDING
+					shapeQueue[ID].points[k].y = tonumber( shapeQueue[ID].points[k].y )
+												- minY + PADDING
+					--shapeQueue[ID].points[k].x = math.floor( shapeQueue[ID].points[k].x )
+					--shapeQueue[ID].points[k].y = math.floor( shapeQueue[ID].points[k].y )
+					--thisThread:set("msg",  )
+					--os.execute("sleep .1")
+					if k > 1 and
+						shapeQueue[ID].points[k].x == shapeQueue[ID].points[k-1].x and
+						shapeQueue[ID].points[k].y == shapeQueue[ID].points[k-1].y then
+						thisThread:set("msg", "\t\tDOUBLE!!" .. shapeQueue[ID].points[k].x .. " | " .. shapeQueue[ID].points[k].y)
+					os.execute("sleep .1")
+					end
 				end
 			
 			
@@ -704,7 +722,6 @@ function runThread()
 				}
 				
 				correctShapeDirection( shapeQueue[ID] )
-				drawNormals( shapeQueue[ID] )
 			end
 		end
 	
@@ -732,9 +749,7 @@ function runThread()
 				elseif not s.bool_normalMap then
 					drawNormalMap( s )
 				else
-					setColor(0,0,0,255)
-					drawLineAA( s.normalMap, 10, 10, s.imageData:getWidth()-10, s.imageData:getHeight()-10, 1)
-					drawLineAA( s.normalMap, s.normalMap:getWidth()/2, 10, s.normalMap:getWidth()/2-10, s.normalMap:getHeight()-10, 1)
+					--drawNormals( s )
 					thisThread:set( ID .. "(img)", s.imageData )
 					thisThread:set( ID .. "(nm)", s.normalMap )
 					thisThread:set(  ID .. "(done)", true )

@@ -4,6 +4,7 @@ require("Scripts/middleclass")
 Point = class("Point")
 
 function Point:initialize( x, y )
+
 	self.x = x
 	self.y = y
 	
@@ -75,16 +76,20 @@ function Point:__add( second )
 end
 
 function Point:__mul( val )
+	if val ~= val then		-- check for nan
+		return Point:new( self.x, self.y )
+	end
+
 	if type(val) == "number" then
 		return Point:new( self.x*val, self.y*val )
 	end
 end
 
 function Point:__tostring()
-	return "[" .. self.x .. "," .. self.y .. "] "
+	return 'Point: [' .. tostring(self.x) .. ', ' .. tostring(self.y) .. ']'
 end
 function Point:__concat()
-	return "[" .. self.x .. "," .. self.y .. "] "
+	return 'Point: [' .. tostring(self.x) .. ', ' .. tostring(self.y) .. ']'
 end
 
 

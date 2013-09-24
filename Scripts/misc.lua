@@ -131,7 +131,9 @@ function lineIntersections( P, P2, Q, Q2 )
 	end
 	local numer1 = vectorCross( Q-P, s )
 	local t1 =  numer1 / (denom)
-	return P + (r*t1)
+	local x = P + (r*t1)
+	
+	return x
 end
 
 
