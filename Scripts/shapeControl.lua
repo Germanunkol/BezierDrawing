@@ -27,6 +27,9 @@ end
 function ShapeControl:getSelectedShape()
 	return self.selectedShape
 end
+function ShapeControl:getEditedShape()
+	return self.editedShape
+end
 function ShapeControl:getNumShapes()
 	return #self.shapes
 end
@@ -145,8 +148,13 @@ function ShapeControl:click( mX, mY, button, zoom )
 						hit:setSelected( true )
 						self.selectedShape = hit
 						
-							self.draggedShape = hit
-							hit:startDragging( mX, mY )
+						self.draggedShape = hit
+						hit:startDragging( mX, mY )
+					else
+						if self.selectedShape then
+							self.selectedShape:setSelected( false )
+							self.selectedShape = nil
+						end
 					end
 
 				end
@@ -199,9 +207,17 @@ end
 function ShapeControl:keypressed( key, unicode )
 	if key == "g" then
 		self:setSnapToGrid( not self:getSnapToGrid() )
-	else
-		if key == "h" then
-			self:setSnapToCPoints( not self:getSnapToCPoints() )
+	elseif key == "h" then
+		self:setSnapToCPoints( not self:getSnapToCPoints() )
+	elseif key == "x" then
+		if self.selectedShape then
+			if self.editedShape == self.selectedShape then
+				self.editedShape = nil
+			end
+			
+			removeFromTbl( self.shapes, self.selectedShape )
+			
+			self.selectedShape = nil
 		end
 	end
 	

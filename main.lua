@@ -69,7 +69,7 @@ function love.draw()
 	y = displayKey(10, y, "Zoom:", cam:getZoom(), true)
 	y = displayKey(10, y, "F5", "Screenshot")
 	
-	if not shapeControl:getSelectedShape() then
+	if not shapeControl:getEditedShape() then
 		y = displayKey(10, y, "Ctrl + Click", "New shape")
 		if shapeControl:getNumShapes() > 0 then
 			y = displayKey(10, y, "Click shape border", "Select shape")
@@ -78,11 +78,14 @@ function love.draw()
 		y = displayKey(10, y, "Ctrl + Click", "Add point")
 		y = displayKey(10, y, "Click + Drag", "Move point")
 		y = displayKey(10, y, "Right click", "Remove corner")
-		if #shapeControl:getSelectedShape().curves > 0 then
+		if #shapeControl:getEditedShape().curves > 0 then
 			y = displayKey(10, y, "Right click", "Reset control point")
 		end
 		y = y+10
 		y = displayKey(10, y, "Esc", "Deselect+Render")
+	end
+	if shapeControl:getSelectedShape() then
+		y = displayKey(10, y, "X", "Delete Shape")
 	end
 	y = love.graphics.getHeight() -20
 	if shapeControl:getSnapToGrid() then

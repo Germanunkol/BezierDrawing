@@ -324,9 +324,6 @@ function Shape:draw()
 		else
 			love.graphics.setColor(255,255,255,255)
 		end
-		if self.dragged then
-			love.graphics.setColor(255,0,0,255)
-		end
 		love.graphics.setPixelEffect(self.shader)
 		love.graphics.draw( self.image.img,
 							self.boundingBox.minX - IMG_PADDING,
@@ -355,7 +352,11 @@ function Shape:draw()
 	--love.graphics.draw
 	if self.boundingBox and self.selected or self.editing then
 		love.graphics.setLineWidth( math.max( 1/cam:getZoom(), 1) )
-		love.graphics.setColor(255,120,50, 150)
+		if self.dragged then
+			love.graphics.setColor(120,255,50, 200)
+		else
+			love.graphics.setColor(255,120,50, 150)
+		end
 		local str
 		if self.boundingBox.minX and self.boundingBox.maxX ~= self.boundingBox.minX then
 			love.graphics.line( self.boundingBox.minX, self.boundingBox.maxY + 20,
