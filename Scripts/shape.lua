@@ -298,7 +298,7 @@ function Shape:drop()	-- stop dragging and reset
 	self.dragged = false
 end
 
-function Shape:draw()
+function Shape:draw( editMode )
 	
 	--love.graphics.setCanvas(self.tempCanvas)
 	love.graphics.setColor( 255,255,255,255 )
@@ -309,11 +309,8 @@ function Shape:draw()
 		love.graphics.push()
 		love.graphics.translate( self.offsetX, self.offsetY )
 	end
-		for k,c in pairs( self.curves ) do
-			c:draw( self.editing, self.closed )
-		end
 	
-	if self.image.img and not self.editing and self.boundingBox then
+	if self.image.img and not self.editing and self.boundingBox and not editMode then
 	
 		local x, y = love.mouse.getPosition()
 		self.shader:send( "LightPos", {x, (love.graphics.getHeight() - y), .04} )
@@ -341,6 +338,9 @@ function Shape:draw()
 		--end
 		love.graphics.setPixelEffect()
 	else
+		for k,c in pairs( self.curves ) do
+			c:draw( self.editing, self.closed )
+		end
 		if self.editing then
 			for k,c in pairs( self.corners ) do
 				c:draw()
@@ -350,13 +350,15 @@ function Shape:draw()
 	--love.graphics.setCanvas()
 	
 	--love.graphics.draw
+	
+	
+	if self.dragged then
+		love.graphics.setColor(120,255,50, 200)
+	else
+		love.graphics.setColor(255,120,50, 150)
+	end
 	if self.boundingBox and self.selected or self.editing then
 		love.graphics.setLineWidth( math.max( 1/cam:getZoom(), 1) )
-		if self.dragged then
-			love.graphics.setColor(120,255,50, 200)
-		else
-			love.graphics.setColor(255,120,50, 150)
-		end
 		local str
 		if self.boundingBox.minX and self.boundingBox.maxX ~= self.boundingBox.minX then
 			love.graphics.line( self.boundingBox.minX, self.boundingBox.maxY + 20,
@@ -373,16 +375,17 @@ function Shape:draw()
 			love.graphics.print( str, self.boundingBox.maxX + 22,
 					self.boundingBox.maxY - love.graphics.getFont():getHeight())
 		end
-		
-		if self.image then
-			if self.image.rendering then
-				love.graphics.print( "Rendering (" .. math.floor( self.image.percent ) .. "%)", 
-					 self.boundingBox.minX,
-					 self.boundingBox.maxY + 22
-				)
-			end
+	end
+	
+	if self.image then
+		if self.image.rendering then
+			love.graphics.print( "Rendering (" .. math.floor( self.image.percent ) .. "%)", 
+				 self.boundingBox.minX,
+				 self.boundingBox.maxY + 22
+			)
 		end
 	end
+	
 	if self.dragged then
 		love.graphics.pop()
 	end

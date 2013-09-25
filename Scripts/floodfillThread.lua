@@ -24,12 +24,10 @@ local seedFinishded,coveredPixels
 
 local PADDING = 25
 
-function profile( x )
-	if x < 0.5 then
-	return 0
-	else
-	return -1
-	end
+function profile( dir, amount )
+	local len = 1-amount
+	local normal3D = dir*len
+	return normal3D.x, normal3D.y, -(amount-1)^2 + 1
 end
 
 local outCol = {
@@ -659,13 +657,14 @@ function drawNormalMap( shape )
 		local covered = 0
 		local x,y,z, len
 		local dir = Point:new(-shape.points[k].lineNormal.x, shape.points[k].lineNormal.y)
+		dir = dir*(1/dir:getLength())	-- normalize
 		while covered < thickness do
 	
 			--Color.rgb = Normal.xyz / 2.0 + 0.5;
-		
-			x = dir.x
-			y = dir.y
-			z = dir:getLength()*(thickness-covered)/thickness
+			x, y, z = profile( dir, covered/thickness)
+			--x = dir.x
+			--y = dir.y
+			--z = dir:getLength()*
 	
 			len = math.sqrt(x*x+y*y+z*z)
 			x = (x/len)/2+0.5

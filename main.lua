@@ -19,14 +19,24 @@ function love.load()
 	
 end
 
-function displayKey( x, y, redText, whiteText, noRed )
+function displayHeader( x, y, headerText )
+	y = y + 10
+	love.graphics.setColor(100,160,255, 255)
+	love.graphics.print(headerText, x, y)
+	return y + love.graphics.getFont():getHeight()
+end
+function displayKey( x, y, redText, whiteText )
+	x = x + 5
 	love.graphics.setColor(255,120,50, 255)
-	if noRed then
-		love.graphics.setColor(255,255,255, 255)
-	end
-	love.graphics.print(redText, 10, y)
+	love.graphics.print(redText, x, y)
 	love.graphics.setColor(255,255,255, 255)
-	love.graphics.print(whiteText, 15 + love.graphics.getFont():getWidth(redText), y)
+	love.graphics.print(whiteText, x + 5 + love.graphics.getFont():getWidth(redText), y)
+	return y + love.graphics.getFont():getHeight()
+end
+function displayInfo( x, y, whiteText )
+	x = x + 5
+	love.graphics.setColor(255,255,255, 255)
+	love.graphics.print(whiteText, x, y)
 	return y + love.graphics.getFont():getHeight()
 end
 
@@ -65,36 +75,45 @@ function love.draw()
 	drawGrid2()
 	
 	local y = 10
-	y = displayKey(10, y, "FPS:", love.timer.getFPS(), true)
-	y = displayKey(10, y, "Zoom:", cam:getZoom(), true)
-	y = displayKey(10, y, "F5", "Screenshot")
+	y = displayHeader(10, y, "Info")
+	y = displayInfo(10, y, "FPS: " .. love.timer.getFPS())
+	y = displayInfo(10, y, "Zoom: " .. cam:getZoom())
+	
+	y = displayHeader(10, y, "Camera")
+	y = displayKey(10, y, "Middle Mouse", "Move")
+	y = displayKey(10, y, "Mouse Wheel", "Zoom")
+	
 	
 	if not shapeControl:getEditedShape() then
-		y = displayKey(10, y, "Ctrl + Click", "New shape")
+		y = displayHeader(10, y, "Shape Control")
+		y = displayKey(10, y, "Ctrl + Click", "New")
 		if shapeControl:getNumShapes() > 0 then
-			y = displayKey(10, y, "Click shape border", "Select shape")
+			y = displayKey(10, y, "Click", "Select")
+			y = displayKey(10, y, "Double Click", "Edit")
+			y = displayKey(10, y, "Click + Drag", "Move")
 		end
-	else
-		y = displayKey(10, y, "Ctrl + Click", "Add point")
-		y = displayKey(10, y, "Click + Drag", "Move point")
-		y = displayKey(10, y, "Right click", "Remove corner")
-		if #shapeControl:getEditedShape().curves > 0 then
-			y = displayKey(10, y, "Right click", "Reset control point")
+		if shapeControl:getSelectedShape() then
+		y = displayHeader(10, y, "Selected")
+			y = displayKey(10, y, "X", "Delete Shape")
+			y = displayKey(10, y, "+", "Raise Shape")
+			y = displayKey(10, y, "-", "Lower Shape")
 		end
-		y = y+10
-		y = displayKey(10, y, "Esc", "Deselect+Render")
 	end
-	if shapeControl:getSelectedShape() then
-		y = displayKey(10, y, "X", "Delete Shape")
-		y = displayKey(10, y, "+", "Raise Shape")
-		y = displayKey(10, y, "-", "Lower Shape")
+	
+	if shapeControl:getEditedShape() then
+		y = displayHeader(10, y, "Edit Mode")
+		y = displayKey(10, y, "Ctrl + Click", "Add corner")
+		y = displayKey(10, y, "Right Click", "Remove corner / Reset Point")
+		y = displayKey(10, y, "Click + Drag", "Move")
+		y = displayKey(10, y, "Esc or Click outside", "Stop editing")
 	end
-	y = love.graphics.getHeight() -20
+	y = love.graphics.getHeight() -40
 	if shapeControl:getSnapToGrid() then
 		y = displayKey(10, y, "G", "Snap to grid (is ON)")
 	else
 		y = displayKey(10, y, "G", "Snap to grid (is OFF)")
 	end
+	y = displayKey(10, y, "F5", "Screenshot")
 	
 	cam:set()
 	shapeControl:draw()

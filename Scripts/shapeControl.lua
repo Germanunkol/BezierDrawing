@@ -16,7 +16,7 @@ function ShapeControl:initialize( gridSize, canvasWidth, canvasHeight )
 	self.editedShape = nil
 	
 	-- for double clicking:
-	self.doubleClickTime = 0.5
+	self.doubleClickTime = 0.3
 	self.lastClickTime = 0
 	
 	-- Thread will wait for shapes to request filled images and normalmaps:
@@ -174,7 +174,8 @@ function ShapeControl:click( mX, mY, button, zoom )
 				if hit.class == Corner then
 					self.editedShape:removeCorner( hit )
 					if self.editedShape:getNumCorners() == 0 then
-						removeFromTbl( self.shapes, self.selShape )
+						removeFromTbl( self.shapes, self.editedShape )
+						self.selectedShape = nil
 						self.editedShape = nil
 					end
 				else	-- right click on control point should reset this control point!
@@ -190,6 +191,15 @@ function ShapeControl:click( mX, mY, button, zoom )
 				self.selectedShape:setSelected( false )
 			end
 			self.selectedShape = self.editedShape
+		end
+	end
+	for k = 1, #self.shapes do
+		if self.shapes[k]:getNumCorners() <= 1 and self.shapes[k] ~= self.editedShape then
+			if self.selectedShape == self.shapes[k] then
+				self.selectedShape = nil
+			end
+			
+			removeFromTbl( self.shapes, self.shapes[k] )
 		end
 	end
 end
@@ -250,7 +260,7 @@ end
 
 function ShapeControl:draw()
 	for k = 1,#self.shapes do
-		self.shapes[k]:draw()
+		self.shapes[k]:draw( self.editedShape )
 	end
 end
 
