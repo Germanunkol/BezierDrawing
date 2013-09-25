@@ -213,17 +213,6 @@ function ShapeControl:keypressed( key, unicode )
 	end
 end
 
-function ShapeControl:keyreleased( key, unicode )
---[[	if key == "lctrl" then
-		self:setSnapToGrid( false )
-	else
-		if key == "lshift" then
-			self:setSnapToCPoints( false )
-		end
-	end
-	]]--
-end
-
 
 function ShapeControl:draw()
 	for k = 1,#self.shapes do
@@ -261,6 +250,13 @@ function ShapeControl:update( mX, mY, dt )
 	end
 	
 	if self.draggedShape then
+		if self.snapToGrid then
+			local dX, dY = mX - self.draggedShape.startDragX, mY - self.draggedShape.startDragY
+			mX = math.floor((dX+self.gridSize/2)/self.gridSize)*self.gridSize
+					+ self.draggedShape.startDragX
+			mY = math.floor((dY+self.gridSize/2)/self.gridSize)*self.gridSize
+					+ self.draggedShape.startDragY
+		end
 		self.draggedShape:drag( mX, mY )
 	end
 	

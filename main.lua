@@ -145,6 +145,3 @@ function love.keypressed( key, unicode )
 	
 end
 
-function love.keyreleased( key, unicode )
-	shapeControl:keyreleased( key, unicode )
-end
