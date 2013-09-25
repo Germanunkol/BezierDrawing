@@ -219,6 +219,24 @@ function ShapeControl:keypressed( key, unicode )
 			
 			self.selectedShape = nil
 		end
+	elseif key == "+" then		-- move shape to lower layer:
+		if self.selectedShape then
+			for k = 1, #self.shapes-1 do	-- if it's the highest shape, don't bother moving it up
+				if self.shapes[k] == self.selectedShape then
+					self.shapes[k], self.shapes[k+1] = self.shapes[k+1], self.shapes[k]
+					break
+				end
+			end
+		end
+	elseif key == "-" then		 -- move shape to higher layer:
+		if self.selectedShape then
+			for k = #self.shapes, 2, -1 do	-- if it's the lowest shape, don't bother moving it
+				if self.shapes[k] == self.selectedShape then
+					self.shapes[k], self.shapes[k-1] = self.shapes[k-1], self.shapes[k]
+					break
+				end
+			end
+		end
 	end
 	
 	if key == "escape" then

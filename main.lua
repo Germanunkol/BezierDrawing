@@ -86,6 +86,8 @@ function love.draw()
 	end
 	if shapeControl:getSelectedShape() then
 		y = displayKey(10, y, "X", "Delete Shape")
+		y = displayKey(10, y, "+", "Raise Shape")
+		y = displayKey(10, y, "-", "Lower Shape")
 	end
 	y = love.graphics.getHeight() -20
 	if shapeControl:getSnapToGrid() then
