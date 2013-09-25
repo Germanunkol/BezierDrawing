@@ -273,6 +273,7 @@ function Shape:drag( x, y )
 end
 
 function Shape:startDragging( x, y )
+	print("dragging")
 	self.dragged = true
 	self.startDragX, self.startDragY = x, y
 end
@@ -280,7 +281,6 @@ end
 function Shape:stopDragging( x, y )
 	self.offsetX, self.offsetY = x - self.startDragX, y - self.startDragY
 	
-		print(self.offsetX, self.offsetY, self.startDragX, self.startDragY, x, y )
 	for k = 1, #self.curves do
 		for i = 1, #self.curves[k].cPoints do
 			self.curves[k].cPoints[i]:addOffset( self.offsetX, self.offsetY )
@@ -293,6 +293,11 @@ function Shape:stopDragging( x, y )
 	end
 	self.dragged = false
 	self.modified = true
+end
+
+function Shape:drop()	-- stop dragging and reset
+	self.dragged = false
+	print("dropped")
 end
 
 function Shape:draw()

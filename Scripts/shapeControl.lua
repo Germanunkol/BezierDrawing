@@ -154,19 +154,24 @@ function ShapeControl:click( mX, mY, button, zoom )
 		end
 	end
 	if button == "r" then
-		local hit
-		if self.editedShape then
-			hit = self.editedShape:checkHit( mX, mY )
-		end
-		if hit then
-			if hit.class == Corner then
-				self.editedShape:removeCorner( hit )
-				if self.editedShape:getNumCorners() == 0 then
-					removeFromTbl( self.shapes, self.selShape )
-					self.editedShape = nil
+		if self.draggedShape then
+			self.draggedShape:drop()
+			self.draggedShape = nil
+		else
+			local hit
+			if self.editedShape then
+				hit = self.editedShape:checkHit( mX, mY )
+			end
+			if hit then
+				if hit.class == Corner then
+					self.editedShape:removeCorner( hit )
+					if self.editedShape:getNumCorners() == 0 then
+						removeFromTbl( self.shapes, self.selShape )
+						self.editedShape = nil
+					end
+				else	-- right click on control point should reset this control point!
+					hit:reset()
 				end
-			else	-- right click on control point should reset this control point!
-				hit:reset()
 			end
 		end
 	end

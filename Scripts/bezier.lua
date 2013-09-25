@@ -226,9 +226,6 @@ function Bezier:getModified()
 end
 
 function Bezier:update()
-	for k = 1, #self.cPoints do
-		print("before", k, self.cPoints[k])
-	end
 
 	-- Stay a line unless the intermediate points have been moved manually:
 	if not self.cPoints[2].hasBeenMoved then
@@ -242,24 +239,14 @@ function Bezier:update()
 	self.points = subdivideRecursive( self.cPoints, 0.5, deg2rad(self.segmentAngle) )
 	self.length = self.points.length
 	
-	for k = 1, #self.cPoints do
-		print("between 1", k, self.cPoints[k])
-	end
-	
 	self:removeDoubles()
 	
 	if self.points[#self.points] ~= self.cPoints[#self.cPoints] then
 		self.points[#self.points+1] = self.cPoints[#self.cPoints]
 	end
-	for k = 1, #self.cPoints do
-		print("between 2", k, self.cPoints[k])
-	end
 	self:calcBoundingBox()
 	self.modified = false
 	
-	for k = 1, #self.cPoints do
-		print("after", k, self.cPoints[k])
-	end
 end
 
 function Bezier:splitCurveAt( t )
