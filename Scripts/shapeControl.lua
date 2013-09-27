@@ -260,7 +260,12 @@ end
 
 function ShapeControl:draw()
 	for k = 1,#self.shapes do
-		self.shapes[k]:draw( self.editedShape )
+		if self.editedShape ~= self.shapes[k] then		-- draw edited shape last!
+			self.shapes[k]:draw( self.editedShape )
+		end
+	end
+	if self.editedShape then
+		self.editedShape:draw( self.editedShape )
 	end
 end
 

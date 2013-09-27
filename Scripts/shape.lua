@@ -301,7 +301,6 @@ end
 function Shape:draw( editMode )
 	
 	--love.graphics.setCanvas(self.tempCanvas)
-	love.graphics.setColor( 255,255,255,255 )
 	--if self.image.tempImage then
 		--love.graphics.draw( self.image.tempImage, self.boundingBox.minX-5, self.boundingBox.minY-5 )
 	--end

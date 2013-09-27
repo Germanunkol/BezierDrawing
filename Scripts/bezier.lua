@@ -270,7 +270,11 @@ function Bezier:draw( active, closed )
 	if active and closed then
 		love.graphics.setColor(150,255,120, 255)
 	else
-		love.graphics.setColor(255,255,255, 255)
+		if not active then
+			love.graphics.setColor(200,200,200, 150)
+		else
+			love.graphics.setColor(255,255,255, 255)
+		end
 	end
 	for k=1,#self.points-1 do
 		love.graphics.line( self.points[k].x, self.points[k].y, self.points[k+1].x, self.points[k+1].y )

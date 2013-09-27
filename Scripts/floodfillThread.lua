@@ -27,7 +27,7 @@ local PADDING = 25
 function profile( dir, amount )
 	local len = 1-amount
 	local normal3D = dir*len
-	return normal3D.x, normal3D.y, -(amount-1)^2 + 1
+	return normal3D.x, normal3D.y, amount
 end
 
 local outCol = {
