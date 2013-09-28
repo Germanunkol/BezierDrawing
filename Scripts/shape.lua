@@ -516,9 +516,9 @@ function Shape:startFill()
 end
 
 function Shape:finishFill( img, nm, sm )
-	nm:encode("nm.png")
+	--nm:encode("nm.png")
 	--img:encode("img.png")
-	sm:encode("sm.png")
+	--sm:encode("sm.png")
 	
 	self.image.canvas = love.graphics.newCanvas( img:getWidth(), img:getHeight() )
 	love.graphics.setCanvas( self.image.canvas )
