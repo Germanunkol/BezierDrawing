@@ -392,6 +392,7 @@ function ShapeControl:loadMaterials()
 	local files = love.filesystem.enumerate("Materials")
 	self.materials = {}
 	for k, name in pairs(files) do
+		print(k, name)
 		if name:find(".lua") == #name-4 then
 			self.materials[#self.materials+1] = {
 				name = name:sub( 1, #name-5 )
