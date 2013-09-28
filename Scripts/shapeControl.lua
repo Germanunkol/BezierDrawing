@@ -392,10 +392,10 @@ function ShapeControl:loadMaterials()
 	local files = love.filesystem.enumerate("Materials")
 	self.materials = {}
 	for k, name in pairs(files) do
-		print(k, name)
-		if name:find(".lua") == #name-4 then
+		print(k, name, name:find(".lua"), #name)
+		if name:find(".lua") == #name-3 then
 			self.materials[#self.materials+1] = {
-				name = name:sub( 1, #name-5 )
+				name = name:sub( 1, #name-4 )
 			}
 			print("\t" , self.materials[#self.materials].name)
 		end
