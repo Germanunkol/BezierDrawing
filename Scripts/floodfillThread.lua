@@ -16,6 +16,7 @@ thisThread = love.thread.getThread()
 local shapeQueue = {}
 local lastTime = love.timer.getMicroTime()
 local newTime --= love.timer.getMicroTime()
+local shapeFound = 0
 
 local numRenderedShapes = 0
 
@@ -370,7 +371,6 @@ end
 function isInsideShape( shape, x, y )
 	if x < 0 or x > shape.imageData:getWidth() - 1 or 
 		y < 0 or y > shape.imageData:getHeight() - 1 then
-			thisThread:set("msg", 0)
 		return false
 	end
 	
@@ -378,7 +378,6 @@ function isInsideShape( shape, x, y )
 	
 	-- On outline? Then return false - not inside shape!
 	if (a == outCol.a and r == outCol.r and g == outCol.g and b == outCol.b) then
-			thisThread:set("msg", 1)
 		return false
 	end
 	
@@ -827,7 +826,6 @@ function runThread()
 												- minX + PADDING
 					shapeQueue[ID].points[k].y = tonumber( shapeQueue[ID].points[k].y )
 												- minY + PADDING
-				thisThread:set("msg", "2")
 					--shapeQueue[ID].points[k].x = math.floor( shapeQueue[ID].points[k].x )
 					--shapeQueue[ID].points[k].y = math.floor( shapeQueue[ID].points[k].y )
 					--thisThread:set("msg",  )
@@ -836,7 +834,7 @@ function runThread()
 						shapeQueue[ID].points[k].x == shapeQueue[ID].points[k-1].x and
 						shapeQueue[ID].points[k].y == shapeQueue[ID].points[k-1].y then
 						thisThread:set("msg", "\t\tDOUBLE!!" .. shapeQueue[ID].points[k].x .. " | " .. shapeQueue[ID].points[k].y)
-					os.execute("sleep .1")
+			love.timer.sleep(0.1)
 					end
 				end
 			
@@ -870,8 +868,11 @@ function runThread()
 			end
 		end
 	
+		shapeFound = false
 		for ID, s in pairs(shapeQueue) do
 		
+			shapeFound = true
+			
 			seeds = shapeQueue[ID].seedList
 			if #seeds > 0 then
 				seedFinishded, coveredPixels = scanlineFill( s, seeds[#seeds] )
@@ -918,7 +919,11 @@ function runThread()
 			s.percent = (s.colorMapPercent +
 							s.normalMapPercent +
 							s.specMapPercent)/3
-				thisThread:set(ID .. "(%)", s.percent)
+			thisThread:set(ID .. "(%)", s.percent)
+		end
+		if shapeFound == false then
+			thisThread:set("msg", math.random(100)/100)
+			os.execute("sleep 0.1")
 		end
 	end
 end
