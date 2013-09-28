@@ -111,10 +111,12 @@ function love.draw()
 		end
 		if shapeControl:getSelectedShape() then
 		y = displayHeader(10, y, "Selected")
-			y = displayKey(10, y, "X", "Delete Shape")
+			y = displayKey(10, y, "Delete", "Delete Shape")
 			y = displayKey(10, y, "+", "Raise Shape")
 			y = displayKey(10, y, "-", "Lower Shape")
 			y = displayKey(10, y, "M", "Change Material")
+			y = displayKey(10, y, "X", "Mirror X")
+			y = displayKey(10, y, "Y", "Mirror Y")
 		end
 	end
 	

@@ -230,7 +230,7 @@ function ShapeControl:keypressed( key, unicode )
 		self:setSnapToGrid( not self:getSnapToGrid() )
 	elseif key == "h" then
 		self:setSnapToCPoints( not self:getSnapToCPoints() )
-	elseif key == "x" or key == "delete" then
+	elseif key == "delete" then
 		if self.selectedShape then
 			if self.editedShape == self.selectedShape then
 				self.editedShape = nil
@@ -275,6 +275,14 @@ function ShapeControl:keypressed( key, unicode )
 					end
 				end
 			end
+		end
+	elseif key == "x" then
+		if self.selectedShape then
+			self.selectedShape:flip( "x" )
+		end
+	elseif key == "y" then
+		if self.selectedShape then
+			self.selectedShape:flip( "y" )
 		end
 	end
 	
@@ -447,7 +455,7 @@ end
 function ShapeControl:uiHit()
 	x, y = love.mouse.getPosition()
 	for k, m in pairs(self.materials) do
-		if m.currentShape:pointIsInside( x, y ) then
+		if m.currentShape:pointInsideBoundings( x, y ) then
 			for i,m2 in pairs(self.materials) do	-- set all others to unselected
 				m2.currentShape = m2.baseShape
 			end

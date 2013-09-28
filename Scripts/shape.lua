@@ -585,28 +585,33 @@ function Shape:finishFill( img, nm, sm )
 	self.image.finished = true
 end
 
+function Shape:calcBoundingBox()
+	self.boundingBox.minX = math.huge
+	self.boundingBox.minY = math.huge
+	self.boundingBox.maxX = -math.huge
+	self.boundingBox.maxY = -math.huge
+	local boundings
+	for k = 1, #self.curves do
+		boundings = self.curves[k]:getBoundingBox()
+		self.boundingBox.minX = math.min( boundings.minX, self.boundingBox.minX )
+		self.boundingBox.minY = math.min( boundings.minY, self.boundingBox.minY )
+		self.boundingBox.maxX = math.max( boundings.maxX, self.boundingBox.maxX )
+		self.boundingBox.maxY = math.max( boundings.maxY, self.boundingBox.maxY )
+	end
+end
+
 function Shape:update( dt )
 
 	if self.editing or self.modified then
 		for k = 1, #self.curves do
 			if self.curves[k]:getModified() then
+				print("true!, modified")
 				self.curves[k]:update()
 				self.modified = true
 			end
 		end
 		if self.modified then
-			self.boundingBox.minX = math.huge
-			self.boundingBox.minY = math.huge
-			self.boundingBox.maxX = -math.huge
-			self.boundingBox.maxY = -math.huge
-			local boundings
-			for k = 1, #self.curves do
-				boundings = self.curves[k]:getBoundingBox()
-				self.boundingBox.minX = math.min( boundings.minX, self.boundingBox.minX )
-				self.boundingBox.minY = math.min( boundings.minY, self.boundingBox.minY )
-				self.boundingBox.maxX = math.max( boundings.maxX, self.boundingBox.maxX )
-				self.boundingBox.maxY = math.max( boundings.maxY, self.boundingBox.maxY )
-			end
+			self:calcBoundingBox()
 		
 			self.modified = false
 		end
@@ -673,4 +678,53 @@ function Shape:pointIsInside( x, y )
 	love.graphics.line( P.x, P.y, Pup.x, Pup.y )
 	love.graphics.line( P.x, P.y, Pleft.x, Pleft.y )
 	return false
+end
+
+-- less precice, but more reliable check:
+function Shape:pointInsideBoundings( x, y )
+	if not self.closed then return false end
+	
+	if not self.boundingBox then return false end
+	
+	if x >= self.boundingBox.minX and x <= self.boundingBox.maxX
+		and y >= self.boundingBox.minY and y <= self.boundingBox.maxY then
+		return true
+	end
+	
+	return false
+end
+
+function Shape:flip( dir )
+
+	self:calcBoundingBox()
+	
+	if dir == "x" then
+		local centerX = (self.boundingBox.maxX - self.boundingBox.minX)/2 + self.boundingBox.minX
+		for k = 1, #self.curves do
+			for i = 1, #self.curves[k].cPoints do
+				local x = -self.curves[k].cPoints[i].x + 2*centerX
+				self.curves[k].cPoints[i]:directSet( x, self.curves[k].cPoints[i].y )
+			end
+		end
+		for k = 1, #self.curves do
+			for i = 1, #self.curves[k].cPoints do
+				self.curves[k].cPoints[i]:removeOffsetLock()
+			end
+		end
+	else
+		local centerY = (self.boundingBox.maxY - self.boundingBox.minY)/2 + self.boundingBox.minY
+		for k = 1, #self.curves do
+			for i = 1, #self.curves[k].cPoints do
+				local y = -self.curves[k].cPoints[i].y + 2*centerY
+				self.curves[k].cPoints[i]:directSet( self.curves[k].cPoints[i].x, y )
+			end
+		end
+		for k = 1, #self.curves do
+			for i = 1, #self.curves[k].cPoints do
+				self.curves[k].cPoints[i]:removeOffsetLock()
+			end
+		end
+	end
+	self.modified = true
+	self:resetImage()
 end

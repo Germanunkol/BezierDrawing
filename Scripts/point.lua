@@ -31,6 +31,17 @@ function Point:addOffset( x, y )
 		self.offsetLock = true		-- only allow one offset!
 	end
 end
+function Point:directSet( x, y )
+	if not self.offsetLock then		-- only allow one offset!
+		self.x = x
+		self.y = y
+	
+		for k = 1, #self.curves do
+			self.curves[k]:setModified()
+		end
+		self.offsetLock = true		-- only allow one offset!
+	end
+end
 function Point:removeOffsetLock()
 	self.offsetLock = false
 end
