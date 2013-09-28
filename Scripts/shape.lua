@@ -733,23 +733,32 @@ function Shape:duplicate()
 	new:setEditing( false )
 	new:setSelected( false )
 	
-	for k = 1, #self.corners do
-		local c = self.corners[k]
+	local c = self.corners[1]
+	repeat
 		new:addCorner( c.x, c.y )
-	end
+		c = c.next
+	until c == self.corners[1]
+	
 	if self.closed then
 		new:close()
 	end
-	for k = 1, #self.curves do
 	
+	local newCurve, oldCurve
+	local newCorner, olfCornder
+	oldCorner = self.corners[1]
+	for k = 1, #new.corners do
+		newCorner = new.corners[k]
+		newCurve, oldCurve = newCorner.bezierNext, oldCorner.bezierNext
 		-- copy the two center control points of the curve (they're not corners)
-		local x, y = self.curves[k].cPoints[2].x, self.curves[k].cPoints[2].y
-		new.curves[k].cPoints[2].x, new.curves[k].cPoints[2].y = x,y
-		new.curves[k].cPoints[2].hasBeenMoved = self.curves[k].cPoints[2].hasBeenMoved
+		local x, y = oldCurve.cPoints[2].x, oldCurve.cPoints[2].y
+		newCurve.cPoints[2].x, newCurve.cPoints[2].y = x,y
+		newCurve.cPoints[2].hasBeenMoved = oldCurve.cPoints[2].hasBeenMoved
 		
-		x, y = self.curves[k].cPoints[3].x, self.curves[k].cPoints[3].y
-		new.curves[k].cPoints[3].x, new.curves[k].cPoints[3].y = x,y
-		new.curves[k].cPoints[3].hasBeenMoved = self.curves[k].cPoints[3].hasBeenMoved
+		x, y = oldCurve.cPoints[3].x, oldCurve.cPoints[3].y
+		newCurve.cPoints[3].x, newCurve.cPoints[3].y = x,y
+		newCurve.cPoints[3].hasBeenMoved = oldCurve.cPoints[3].hasBeenMoved
+		
+		oldCorner = oldCorner.next
 	end
 	
 	return new

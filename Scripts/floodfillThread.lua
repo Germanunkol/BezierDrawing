@@ -922,7 +922,6 @@ function runThread()
 			thisThread:set(ID .. "(%)", s.percent)
 		end
 		if shapeFound == false then
-			thisThread:set("msg", math.random(100)/100)
 			os.execute("sleep 0.1")
 		end
 	end
