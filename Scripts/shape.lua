@@ -9,12 +9,13 @@ local IMG_PADDING = 25
 
 Shape = class("Shape")
 local shapes = 0
+local numRenderedShapes = 0
 local function newShapeID()
 	shapes = shapes+1
 	return shapes -1
 end
 
-function Shape:initialize()
+function Shape:initialize( materialName )
 	self.corners = {}
 	self.curves = {}
 	self.editing = true
@@ -30,7 +31,7 @@ function Shape:initialize()
 	--self.insCol = {r=50,g=255,b=20,a=200}
 	self.lineWidth = 2
 	
-	self.materialName = "metal"
+	self.materialName = materialName or "metal"
 	self.material = loadMaterial( self.materialName )
 	
 	--self.finalCanvas = love.graphics.newCanvas()
@@ -49,6 +50,8 @@ function Shape:resetImage()
 	local x, y = love.graphics.getWidth(), love.graphics.getHeight()
 	self.shader:send( "Resolution", {x, y} )
 	
+	-- flush thread messages:
+	floodFillThread:get( self.shapeID .. "(done)")	
 end
 
 function interpolate( P1, P2, amount )
@@ -60,8 +63,8 @@ end
 function Shape:setMaterial( mat )
 	self.materialName = mat
 	self.material = loadMaterial( self.materialName )
-	if self.closed then
-		self:resetImage()
+	self:resetImage()
+	if self.closed and not self.edited then
 		self:startFill()
 	end
 end
@@ -155,6 +158,16 @@ function Shape:addCurve( connectTo )
 		self:selectCorner( nil )
 	end
 	self.modified = true
+end
+
+function Shape:close()
+	if #self.corners > 2 then
+		local prevSelected = self.selectedCorner
+		self.selectedCorner = self.corners[#self.corners]
+		self:addCurve( self.corners[1] )
+		self.selectedCorner = prevSelected	-- reset to the selected corner!
+		self.closed = true
+	end
 end
 
 function Shape:selectCorner( new )
@@ -292,9 +305,7 @@ function Shape:startDragging( x, y )
 	self.startDragX, self.startDragY = x, y
 end
 
-function Shape:stopDragging()
-	--self.offsetX, self.offsetY = x - self.startDragX, y - self.startDragY
-	
+function Shape:stopDragging( x, y )
 	for k = 1, #self.curves do
 		for i = 1, #self.curves[k].cPoints do
 			self.curves[k].cPoints[i]:addOffset( self.offsetX, self.offsetY )
@@ -309,6 +320,11 @@ function Shape:stopDragging()
 	self.modified = true
 end
 
+function Shape:moveTo( x, y )
+	self.offsetX, self.offsetY = x, y
+	self:stopDragging()
+end
+
 function Shape:drop()	-- stop dragging and reset
 	self.dragged = false
 end
@@ -316,9 +332,10 @@ end
 function Shape:draw( editMode )
 	
 	--love.graphics.setCanvas(self.tempCanvas)
-	--if self.image.tempImage then
-		--love.graphics.draw( self.image.tempImage, self.boundingBox.minX-5, self.boundingBox.minY-5 )
-	--end
+	if self.image.tempImage then
+		love.graphics.draw( self.image.tempImage, self.boundingBox.minX-IMG_PADDING,
+							 self.boundingBox.minY-IMG_PADDING )
+	end
 	if self.dragged then
 		love.graphics.push()
 		love.graphics.translate( self.offsetX, self.offsetY )
@@ -368,7 +385,7 @@ function Shape:draw( editMode )
 	
 	
 	if self.dragged then
-		love.graphics.setColor(120,255,50, 200)
+		love.graphics.setColor(100,160,255, 255)
 	else
 		love.graphics.setColor(255,120,50, 150)
 	end
@@ -394,10 +411,17 @@ function Shape:draw( editMode )
 	
 	if self.image then
 		if self.image.rendering then
-			love.graphics.print( "Rendering (" .. math.floor( self.image.percent ) .. "%)", 
+			love.graphics.print( "Rendering (" .. self.image.percent .. "%)", 
 				 self.boundingBox.minX,
-				 self.boundingBox.maxY + 22
+				 self.boundingBox.maxY + 4
 			)
+			love.graphics.setColor(100,160,255, 255)
+			
+			local startX, Y = self.boundingBox.minX, self.boundingBox.maxY + 20
+			local endX = self.boundingBox.minX +
+							(self.boundingBox.maxX - startX)*self.image.percent/100
+			
+			love.graphics.line( startX, Y, endX, Y )
 		end
 	end
 	
@@ -477,6 +501,9 @@ function Shape:splitCurve( curve, dist )
 end
 
 function Shape:startFill()
+
+	self:resetImage()
+
 	self.image.rendering = true
 	self.image.percent = 0
 	
@@ -512,7 +539,8 @@ function Shape:startFill()
 		startPoint.x .. "," ..
 		startPoint.y .. "|"
 	
-	floodFillThread:set("newShape", serialShape)
+	floodFillThread:set("newShape" .. numRenderedShapes, serialShape)
+	numRenderedShapes = numRenderedShapes + 1
 end
 
 function Shape:finishFill( img, nm, sm )
@@ -559,7 +587,6 @@ end
 
 function Shape:update( dt )
 
-	--local updated = false
 	if self.editing or self.modified then
 		for k = 1, #self.curves do
 			if self.curves[k]:getModified() then
@@ -592,7 +619,7 @@ function Shape:update( dt )
 				self:startFill()
 			else
 				local percent = floodFillThread:get( self.shapeID .. "(%)")
-				if percent then self.image.percent = percent end
+				if percent then self.image.percent = math.floor(percent) end
 				
 				local done = floodFillThread:get( self.shapeID .. "(done)")
 				
@@ -601,11 +628,12 @@ function Shape:update( dt )
 					local nm = floodFillThread:demand( self.shapeID .. "(nm)")
 					local sm = floodFillThread:demand( self.shapeID .. "(sm)")
 					self:finishFill( img, nm, sm )
-				else
+				--[[else
 					local img = floodFillThread:get( self.shapeID .. "(img)")
 					if img then
-					self.image.tempImage = love.graphics.newImage( img )
+						self.image.tempImage = love.graphics.newImage( img )
 					end
+					]]--
 				end
 			end
 		end
@@ -635,10 +663,9 @@ function Shape:pointIsInside( x, y )
 		end
 	end
 	if hitUp % 2 == 1 and hitLeft % 2 == 1 then
-	
-	love.graphics.setColor( 0, 255, 0, 60 )
-	love.graphics.line( P.x, P.y, Pup.x, Pup.y )
-	love.graphics.line( P.x, P.y, Pleft.x, Pleft.y )
+		love.graphics.setColor( 0, 255, 0, 60 )
+		love.graphics.line( P.x, P.y, Pup.x, Pup.y )
+		love.graphics.line( P.x, P.y, Pleft.x, Pleft.y )
 		return true
 	end
 	

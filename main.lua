@@ -7,8 +7,6 @@ local canvasWidth = 50
 local canvasHeight = 50
 local shapeControl
 
-pointsSave = {}
-
 function splitArguments( str )
 	local function iterator( t, i )
 		i = i+1
@@ -88,6 +86,11 @@ function love.draw()
 	drawGrid()
 	drawGrid2()
 	
+	cam:set()
+	shapeControl:draw()
+	cam:reset()
+	shapeControl:drawUI()
+	
 	local y = 10
 	y = displayHeader(10, y, "Info")
 	y = displayInfo(10, y, "FPS: " .. love.timer.getFPS())
@@ -111,6 +114,7 @@ function love.draw()
 			y = displayKey(10, y, "X", "Delete Shape")
 			y = displayKey(10, y, "+", "Raise Shape")
 			y = displayKey(10, y, "-", "Lower Shape")
+			y = displayKey(10, y, "M", "Change Material")
 		end
 	end
 	
@@ -129,12 +133,7 @@ function love.draw()
 	end
 	y = displayKey(10, y, "F5", "Screenshot")
 	
-	cam:set()
-	shapeControl:draw()
-	for k = 1, #pointsSave do
-		love.graphics.line( 0, 0, pointsSave[k].x, pointsSave[k].y )
-	end
-	cam:reset()
+	
 	
 	-- local xPos, yPos = love.mouse.getPosition()
 	-- love.graphics.print( angBetweenPoints({x=xPos, y=yPos}, {x=love.graphics.getWidth()/2, y=love.graphics.getHeight()/2}, {x=love.graphics.getWidth()/2, y = 0}) /math.pi*180, 10, y + 20 )

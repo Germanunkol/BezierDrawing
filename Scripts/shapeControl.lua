@@ -21,6 +21,9 @@ function ShapeControl:initialize( gridSize, canvasWidth, canvasHeight )
 	self.doubleClickTime = 0.3
 	self.lastClickTime = 0
 	
+	-- snap per default:
+	self.snapToGrid = true
+	
 	-- Thread will wait for shapes to request filled images and normalmaps:
 	floodFillThread = love.thread.newThread("floodfill", "Scripts/floodfillThread.lua")
 	floodFillThread:start()
@@ -39,7 +42,7 @@ function ShapeControl:getNumShapes()
 end
 
 function ShapeControl:newShape()
-	local s = Shape:new()
+	local s = Shape:new( self.currentMaterial )
 	
 	self.shapes[#self.shapes + 1] = s
 	self.waitedTime = 0
@@ -74,6 +77,10 @@ end
 
 function ShapeControl:click( mX, mY, button, zoom )
 	if button == "l" then
+	
+		if self:uiHit() then return end
+	
+	
 		if love.keyboard.isDown( "rctrl", "lctrl" ) then
 				local hit
 				if self.editedShape then
@@ -290,8 +297,23 @@ function ShapeControl:draw()
 		self.editedShape:draw( self.editedShape )
 	end
 end
+function ShapeControl:drawUI()
+	--if self.selectedShape then
+		for k = 1,#self.materials do
+			--self.materials[k].baseShape:moveTo( 0, 0 )
+					--self.selectedShape.boundingBox.maxX + 25,
+					--self.selectedShape.boundingBox.maxY - 20 - k*30)
+			--self.materials[k].baseShape:update()
+			self.materials[k].currentShape:draw( )
+		end
+	--end
+end
 
 function ShapeControl:update( mX, mY, dt )
+	if not self.materialsRendered then
+		self:renderMaterials()
+	end
+
 	for k = 1, #self.shapes do
 		if self.editedShape and self.editedShape == self.shapes[k] then
 			if self.editedShape:isMoving() then
@@ -352,11 +374,91 @@ function ShapeControl:getSnapToGrid( ) return self.snapToGrid end
 function ShapeControl:loadMaterials()
 	print("Loading materials:")
 	local files = love.filesystem.enumerate("Materials")
-	self.materialList = {}
+	self.materials = {}
 	for k, name in pairs(files) do
 		if name:find(".lua") == #name-4 then
-			self.materialList[#self.materialList+1] = name:sub( 1, #name-5 )
-			print("\t" , self.materialList[#self.materialList])
+			self.materials[#self.materials+1] = {
+				name = name:sub( 1, #name-5 )
+			}
+			print("\t" , self.materials[#self.materials].name)
+		end
+	end
+	
+	for k, mat in pairs(self.materials) do
+		local x, y = love.graphics.getWidth(), love.graphics.getHeight() - 30 - k*35
+		
+		-- create a button for "not selected":
+		mat.baseShape = Shape:new( mat.name )
+		mat.baseShape:addCorner( x-40, y )
+		mat.baseShape:addCorner( x,y )
+		mat.baseShape:addCorner( x,y+30 )
+		mat.baseShape:addCorner( x-40,y+20 )
+		mat.baseShape:close()		-- add connection between first and last point
+		mat.baseShape:setSelected( false )
+		mat.baseShape:setEditing( false )
+		-- mat.baseShape:moveTo( love.graphics.getWidth(),  - 30 - k*35 )
+		mat.baseShape:update()
+		
+		-- create a button for "selected":
+		mat.selShape = Shape:new( mat.name )
+		mat.selShape:addCorner( x-60, y )
+		mat.selShape:addCorner( x,y )
+		mat.selShape:addCorner( x,y+30 )
+		mat.selShape:addCorner( x-60,y+20 )
+		mat.selShape:close()		-- add connection between first and last point
+		mat.selShape:setSelected( false )
+		mat.selShape:setEditing( false )
+		-- mat.selShape:moveTo( , love.graphics.getHeight() - 30 - k*35 )
+		mat.selShape:update()
+		-- self.shapes[#self.shapes+1] = mat.baseShape
+		
+		if k == #self.materials then	-- set one of the materials to selected:
+			mat.currentShape = mat.selShape
+			self.currentMaterial = mat.name
+		else
+			mat.currentShape = mat.baseShape
 		end
 	end
 end
+
+function ShapeControl:renderMaterials()
+	print("render")
+	local numFinished = 0	
+	for k = 1, #self.materials do
+		-- render the base (non selected) shape:
+		if self.materials[k].baseShape.image.img then
+			numFinished = numFinished + 1
+		else
+			self.materials[k].baseShape:update()
+		end
+		
+		-- render the selected shape:
+		if self.materials[k].selShape.image.img then
+			numFinished = numFinished + 1
+		else
+			self.materials[k].selShape:update()
+		end
+	end
+	if numFinished >= #self.materials*2 then
+		self.materialsRendered = true
+	end
+end
+
+function ShapeControl:uiHit()
+	x, y = love.mouse.getPosition()
+	for k, m in pairs(self.materials) do
+		if m.currentShape:pointIsInside( x, y ) then
+			for i,m2 in pairs(self.materials) do	-- set all others to unselected
+				m2.currentShape = m2.baseShape
+			end
+			m.currentShape = m.selShape
+			self.currentMaterial = m.name
+			if self.selectedShape then
+				self.selectedShape:setMaterial( m.name )
+			end
+			return true
+		end
+	end
+	return false
+end
+

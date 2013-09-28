@@ -17,6 +17,7 @@ local shapeQueue = {}
 local lastTime = love.timer.getMicroTime()
 local newTime --= love.timer.getMicroTime()
 
+local numRenderedShapes = 0
 
 local newShape, ID, pos, boundingBox, pointList
 local minX,minY,maxX,maxY
@@ -689,6 +690,7 @@ function drawNormalMap( shape )
 			shape.bool_normalMap = true
 		end
 	end
+	return shape.step_nM
 end
 
 function plainSpecMap( specR, specG, specB, specA )
@@ -753,6 +755,7 @@ function drawSpecularMap( shape )
 			shape.bool_specularMap = true
 		end
 	end
+	return shape.step_sM
 end
 
 -- iterator over arguments:
@@ -777,8 +780,9 @@ function runThread()
 		lastTime = newTime
 	
 		-- Check if there's a new shape in the queue. If so, put it in a table to process later:
-		newShape = thisThread:get("newShape")
+		newShape = thisThread:get("newShape" .. numRenderedShapes)
 		if newShape then
+			numRenderedShapes = numRenderedShapes + 1
 			pos = newShape:find( "{" )
 			if pos then
 				ID = newShape:sub( 1, pos - 1 )
@@ -800,19 +804,17 @@ function runThread()
 					seedList = {},
 					currentLine = 0,
 					pixelsFilled = 0,
+					
+					colorMapPercent = 0,
+					normalMapPercent = 0,
+					specMapPercent = 0,
 				}
 
-
-				
-				
 				pos = newShape:find("|")
 				mat = newShape:sub(1, pos-1) or "metal"
 				newShape = newShape:sub(pos+1)
 				
 				shapeQueue[ID].material = loadMaterial( mat )
-				thisThread:set("msg", "material: " .. mat)
-					os.execute("sleep .1" )
-				
 				
 				tmpPoints = {}
 				for k, v in splitArguments( newShape ) do
@@ -845,7 +847,6 @@ function runThread()
 					" " .. maxX .. 
 					" " .. maxY ..
 					"\n\tnumPoints:" .. #shapeQueue[ID].points
-				thisThread:set("msg", msg)
 			
 				drawOutline(shapeQueue[ID])
 			
@@ -874,16 +875,22 @@ function runThread()
 			seeds = shapeQueue[ID].seedList
 			if #seeds > 0 then
 				seedFinishded, coveredPixels = scanlineFill( s, seeds[#seeds] )
-				if seedFinishded then
-					seeds[#seeds] = nil -- remove last seed!
-				end
-				--thisThread:set( ID .. "(img)", s.imageData )
-				--os.execute("sleep .0001")
 				
 				if coveredPixels then
 					s.pixelsFilled = s.pixelsFilled + coveredPixels
-					thisThread:set(ID .. "(%)", math.floor(100*s.pixelsFilled/shapeQueue[ID].pixels))
+					s.colorMapPercent = math.floor(100*s.pixelsFilled/shapeQueue[ID].pixels)
+					
 				end
+				if seedFinishded then
+					seeds[#seeds] = nil -- remove last seed!
+					if #seeds == 0 then
+						s.colorMapPercent = 100
+					end
+				end
+				
+				--thisThread:set( ID .. "(img)", s.imageData )
+				--thisThread:set( "msg", s.colorMapPercent .. "\t" .. shapeQueue[ID].pixels )
+				--os.execute("sleep .0001")
 				
 			else
 				if not s.bool_directionCorrected then
@@ -893,9 +900,11 @@ function runThread()
 				elseif not s.bool_normalsChecked then
 					checkNormals( s )
 				elseif not s.bool_normalMap then
-					drawNormalMap( s )
+					pos = drawNormalMap( s )
+					s.normalMapPercent = 100*pos/#s.points
 				elseif not s.bool_specularMap then
-					drawSpecularMap( s )
+					pos = drawSpecularMap( s )
+					s.specMapPercent = 100*pos/#s.points
 				else
 					--drawNormals( s )
 					thisThread:set( ID .. "(img)", s.imageData )
@@ -906,6 +915,10 @@ function runThread()
 					thisThread:set( "msg", "Done: " .. ID )
 				end
 			end
+			s.percent = (s.colorMapPercent +
+							s.normalMapPercent +
+							s.specMapPercent)/3
+				thisThread:set(ID .. "(%)", s.percent)
 		end
 	end
 end
