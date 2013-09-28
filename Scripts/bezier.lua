@@ -268,12 +268,12 @@ function Bezier:draw( active, closed )
 	love.graphics.setPointStyle("smooth")
 	
 	if active and closed then
-		love.graphics.setColor(150,255,120, 255)
+		love.graphics.setColor(100,160,255, 255)
 	else
 		if not active then
-			love.graphics.setColor(200,200,200, 150)
+			love.graphics.setColor(200,200,200, 100)
 		else
-			love.graphics.setColor(255,255,255, 255)
+			love.graphics.setColor(150,255,120, 255)
 		end
 	end
 	for k=1,#self.points-1 do

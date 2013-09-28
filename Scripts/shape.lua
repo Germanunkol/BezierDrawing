@@ -605,7 +605,6 @@ function Shape:update( dt )
 	if self.editing or self.modified then
 		for k = 1, #self.curves do
 			if self.curves[k]:getModified() then
-				print("true!, modified")
 				self.curves[k]:update()
 				self.modified = true
 			end
@@ -727,4 +726,31 @@ function Shape:flip( dir )
 	end
 	self.modified = true
 	self:resetImage()
+end
+
+function Shape:duplicate()
+	new = Shape:new( self.materialName )
+	new:setEditing( false )
+	new:setSelected( false )
+	
+	for k = 1, #self.corners do
+		local c = self.corners[k]
+		new:addCorner( c.x, c.y )
+	end
+	if self.closed then
+		new:close()
+	end
+	for k = 1, #self.curves do
+	
+		-- copy the two center control points of the curve (they're not corners)
+		local x, y = self.curves[k].cPoints[2].x, self.curves[k].cPoints[2].y
+		new.curves[k].cPoints[2].x, new.curves[k].cPoints[2].y = x,y
+		new.curves[k].cPoints[2].hasBeenMoved = self.curves[k].cPoints[2].hasBeenMoved
+		
+		x, y = self.curves[k].cPoints[3].x, self.curves[k].cPoints[3].y
+		new.curves[k].cPoints[3].x, new.curves[k].cPoints[3].y = x,y
+		new.curves[k].cPoints[3].hasBeenMoved = self.curves[k].cPoints[3].hasBeenMoved
+	end
+	
+	return new
 end

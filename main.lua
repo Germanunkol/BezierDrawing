@@ -1,7 +1,6 @@
 require("Scripts/shapeControl")
 require("Scripts/camera")
 
-
 local gridSize = 20		-- 20 pixels is one meter
 local canvasWidth = 50
 local canvasHeight = 50
@@ -23,9 +22,13 @@ end
 
 function love.load()
 
+	-- love.graphics.setMode( 1600, 800, false )
+
+	filename = arg[2]
+
 	love.filesystem.setIdentity("BezierDrawing")
 
-	shapeControl = ShapeControl:new(gridSize, canvasWidth, canvasHeight )
+	shapeControl = ShapeControl:new( gridSize, canvasWidth, canvasHeight, filename )
 	
 	cam = Camera:new( .25, 2, gridSize*canvasWidth/2, gridSize*canvasHeight/2 )
 	
@@ -110,15 +113,18 @@ function love.draw()
 			y = displayKey(10, y, "Click + Drag", "Move")
 		end
 		if shapeControl:getSelectedShape() then
-		y = displayHeader(10, y, "Selected")
+			y = displayHeader(10, y, "Selected")
 			y = displayKey(10, y, "Delete", "Delete Shape")
 			y = displayKey(10, y, "+", "Raise Shape")
 			y = displayKey(10, y, "-", "Lower Shape")
 			y = displayKey(10, y, "M", "Change Material")
+			
 			y = displayKey(10, y, "X", "Mirror X")
 			y = displayKey(10, y, "Y", "Mirror Y")
+			y = displayKey(10, y, "D", "Duplicate")
 		end
 	end
+	
 	
 	if shapeControl:getEditedShape() then
 		y = displayHeader(10, y, "Edit Mode")
@@ -126,6 +132,8 @@ function love.draw()
 		y = displayKey(10, y, "Right Click", "Remove corner / Reset Point")
 		y = displayKey(10, y, "Click + Drag", "Move")
 		y = displayKey(10, y, "Esc or Click outside", "Stop editing")
+		y = displayKey(10, y, "X", "Mirror X")
+		y = displayKey(10, y, "Y", "Mirror Y")
 	end
 	y = love.graphics.getHeight() -40
 	if shapeControl:getSnapToGrid() then
@@ -181,6 +189,11 @@ function love.keypressed( key, unicode )
 	if key == "f5" then
 		screenshot()
 	end
-	
+end
+
+function love.quit()
+	if filename then
+		shapeControl:save()
+	end
 end
 

@@ -7,7 +7,7 @@ ShapeControl = class("ShapeControl")
 
 floodFillThread = nil
 
-function ShapeControl:initialize( gridSize, canvasWidth, canvasHeight )
+function ShapeControl:initialize( gridSize, canvasWidth, canvasHeight, filename )
 	self.gridSize = gridSize or 10
 	self.canvasWidth = canvasWidth
 	self.canvasHeight = canvasHeight
@@ -284,6 +284,14 @@ function ShapeControl:keypressed( key, unicode )
 		if self.selectedShape then
 			self.selectedShape:flip( "y" )
 		end
+	elseif key == "d" then
+		if self.selectedShape and not self.editedShape then
+			local new = self.selectedShape:duplicate()
+			self.shapes[#self.shapes+1] = new
+			self.selectedShape:setSelected( false )
+			new:setSelected( true )
+			self.selectedShape = new
+		end
 	end
 	
 	if key == "escape" then
@@ -430,7 +438,6 @@ function ShapeControl:loadMaterials()
 end
 
 function ShapeControl:renderMaterials()
-	print("render")
 	local numFinished = 0	
 	for k = 1, #self.materials do
 		-- render the base (non selected) shape:
@@ -470,3 +477,6 @@ function ShapeControl:uiHit()
 	return false
 end
 
+function ShapeControl:save()
+
+end

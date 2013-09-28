@@ -912,7 +912,7 @@ function runThread()
 					thisThread:set( ID .. "(sm)", s.specularMap )
 					thisThread:set(  ID .. "(done)", true )
 					shapeQueue[ID] = nil
-					thisThread:set( "msg", "Done: " .. ID )
+					thisThread:set( "msg", "Completed shape: " .. ID )
 				end
 			end
 			s.percent = (s.colorMapPercent +

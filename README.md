@@ -7,11 +7,11 @@ Love2D Drawing Library using cubic Bezier curves.
 To Do:
 -------------
 
-- Copy Shape
+- [Done] Copy Shape
 - Box select
-- Rotate selection
-- Scale selection [Canceled]
-- Move selection
-- Fill shape [Done]
-- Change color/Material
-- Render normalmaps
+- [Canceled] Rotate selection
+- [Canceled] Scale selection
+- [Done] Move selection
+- [Done] Fill shape
+- [Done] Change color/Material
+- [Done] Render normalmaps
