@@ -2,6 +2,7 @@
 
 uniform vec3 LightPos;
 uniform sampler2D nm;
+uniform sampler2D sm;
 
 
 uniform vec2 Resolution = vec2(500,300);      //resolution of screen
@@ -32,6 +33,9 @@ FinalColor = DiffuseColor.rgb * Intensity.rgb*/
 	//RGB of our normal map
 	vec3 NormalMap = texture2D(nm, texture_coords).rgb;
 	
+	//RGB of our spec map
+	vec3 SpecularMap = texture2D(sm, texture_coords).rgb;
+	
 	//The delta position of light
 	vec3 LightDir = vec3((LightPos.xy - pixel_coords.xy)/Resolution.xy, LightPos.z);
 	
@@ -47,7 +51,7 @@ FinalColor = DiffuseColor.rgb * Intensity.rgb*/
 	
 	//Pre-multiply light color with intensity
 	//Then perform "N dot L" to determine our diffuse term
-	vec3 Diffuse = (LightColor.rgb * LightColor.a) * max(dot(N, L), 0.0);
+	vec3 Diffuse = (LightColor.rgb * SpecularMap.rgb * LightColor.a) * max(dot(N, L), 0.0);
 
 	//pre-multiply ambient color with intensity
 	vec3 Ambient = AmbientColor.rgb * AmbientColor.a;

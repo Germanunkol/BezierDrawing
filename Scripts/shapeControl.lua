@@ -15,6 +15,8 @@ function ShapeControl:initialize( gridSize, canvasWidth, canvasHeight )
 	self.selectedShape = nil
 	self.editedShape = nil
 	
+	self.materialList = {}
+	
 	-- for double clicking:
 	self.doubleClickTime = 0.3
 	self.lastClickTime = 0
@@ -22,6 +24,8 @@ function ShapeControl:initialize( gridSize, canvasWidth, canvasHeight )
 	-- Thread will wait for shapes to request filled images and normalmaps:
 	floodFillThread = love.thread.newThread("floodfill", "Scripts/floodfillThread.lua")
 	floodFillThread:start()
+	
+	self:loadMaterials()
 end
 
 function ShapeControl:getSelectedShape()
@@ -219,7 +223,7 @@ function ShapeControl:keypressed( key, unicode )
 		self:setSnapToGrid( not self:getSnapToGrid() )
 	elseif key == "h" then
 		self:setSnapToCPoints( not self:getSnapToCPoints() )
-	elseif key == "x" then
+	elseif key == "x" or key == "delete" then
 		if self.selectedShape then
 			if self.editedShape == self.selectedShape then
 				self.editedShape = nil
@@ -244,6 +248,24 @@ function ShapeControl:keypressed( key, unicode )
 				if self.shapes[k] == self.selectedShape then
 					self.shapes[k], self.shapes[k-1] = self.shapes[k-1], self.shapes[k]
 					break
+				end
+			end
+		end
+	elseif key == "m" then
+	
+		-- Scroll through all available materials.
+		-- Find the one the shape is currently using
+		-- then assign the next one, or the first material
+		-- if the current one is the last one in the list:
+		if self.selectedShape then
+			mat = self.selectedShape:getMaterial()
+			for k = 1, #self.materialList do
+				if self.materialList[k] == mat then
+					if k < #self.materialList then
+						self.selectedShape:setMaterial(self.materialList[k+1])
+					else
+						self.selectedShape:setMaterial(self.materialList[1])
+					end
 				end
 			end
 		end
@@ -325,3 +347,16 @@ function ShapeControl:setSnapToGrid( bool )
 end
 function ShapeControl:getSnapToCPoints( ) return self.snapToCPoints end
 function ShapeControl:getSnapToGrid( ) return self.snapToGrid end
+
+
+function ShapeControl:loadMaterials()
+	print("Loading materials:")
+	local files = love.filesystem.enumerate("Materials")
+	self.materialList = {}
+	for k, name in pairs(files) do
+		if name:find(".lua") == #name-4 then
+			self.materialList[#self.materialList+1] = name:sub( 1, #name-5 )
+			print("\t" , self.materialList[#self.materialList])
+		end
+	end
+end

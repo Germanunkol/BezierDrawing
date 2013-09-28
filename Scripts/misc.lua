@@ -169,3 +169,23 @@ function screenshot()
 	
 	print("Saved screenshot.")
 end
+
+----------------------------------
+
+function loadMaterial( mat )
+	local m
+	m = require('Materials/' .. mat)
+	if not m then
+		m = require('Materials/metal')
+	end
+	if not m then
+		error("Error loading material: " .. mat .. ", not found!")
+	end
+	if not m.profile then
+		error("Error loading material: " .. mat .. ", no profile found!")
+	end
+	if not m.col then
+		error("Error loading material: " .. mat .. ", no colour found!")
+	end
+	return m
+end

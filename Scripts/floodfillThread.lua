@@ -2,7 +2,7 @@
 -- Rendering thread for creating filled images.
 -------------------------------------------------
 -- gets new shapes in the form:
--- ID{minX,minY,maxX,maxY}x1,y1|x2,y2|x3,y3| ...
+-- ID{minX,minY,maxX,maxY}MaterialName|x1,y1|x2,y2|x3,y3| ...
 
 require('love.image')
 require('love.filesystem')
@@ -17,18 +17,13 @@ local shapeQueue = {}
 local lastTime = love.timer.getMicroTime()
 local newTime --= love.timer.getMicroTime()
 
+
 local newShape, ID, pos, boundingBox, pointList
 local minX,minY,maxX,maxY
 local tmpPoints
 local seedFinishded,coveredPixels
 
 local PADDING = 25
-
-function profile( dir, amount )
-	local len = 1-amount
-	local normal3D = dir*len
-	return normal3D.x, normal3D.y, amount
-end
 
 local outCol = {
 	r = 250,
@@ -49,6 +44,7 @@ local col = {
 	b = 255,
 	a = 255
 }
+
 
 thisThread:set("msg", "started")
 
@@ -652,7 +648,7 @@ function drawNormalMap( shape )
 		
 		local P1, P2
 	
-		local thickness = 20
+		local thickness = shape.material.profileDepth
 	
 		local covered = 0
 		local x,y,z, len
@@ -661,7 +657,7 @@ function drawNormalMap( shape )
 		while covered < thickness do
 	
 			--Color.rgb = Normal.xyz / 2.0 + 0.5;
-			x, y, z = profile( dir, covered/thickness)
+			x, y, z = shape.material.profile( dir, covered/thickness)
 			--x = dir.x
 			--y = dir.y
 			--z = dir:getLength()*
@@ -695,6 +691,84 @@ function drawNormalMap( shape )
 	end
 end
 
+function plainSpecMap( specR, specG, specB, specA )
+	return function(x, y, r, g, b, a)
+		if a > 0 then
+			return specR, specG, specB, specA
+		else
+			return r,g,b,a
+		end
+	end
+end
+
+function drawSpecularMap( shape )
+	if not shape.specularMap then
+		shape.specularMap = love.image.newImageData( shape.width, shape.height )
+		shape.specularMap:paste( shape.imageData, 0, 0 )
+		shape.step_sM = 1
+		if not shape.material.specular then
+			shape.specularMap:mapPixel( plainSpecMap( 255,255,255,255 ) )
+			shape.bool_specularMap = true
+		else
+			shape.specularMap:mapPixel( plainSpecMap(
+										shape.material.specular.r,
+										shape.material.specular.g,
+										shape.material.specular.b,
+										255 ) )
+		end
+	else
+		k = shape.step_sM
+		
+		local P1, P2
+	
+		local thickness = shape.material.profileDepth
+	
+		local covered = 0
+		local x,y,z, len
+		local dir = Point:new(-shape.points[k].lineNormal.x, shape.points[k].lineNormal.y)
+		dir = dir*(1/dir:getLength())	-- normalize
+		while covered < thickness do
+	
+			--Color.rgb = Normal.xyz / 2.0 + 0.5;
+			x, y, z = shape.material.specularFalloff( dir, covered/thickness)
+			setColor( 255*x, 255*y, 255*z, 255 )
+		
+			P1 = shape.points[k] + shape.points[k].normal*(covered/thickness)
+			P2 = shape.points[k+1] + shape.points[k+1].normal*(covered/thickness)
+	
+			drawLineAA( shape.specularMap, P1.x, P1.y, P2.x, P2.y, 1 )
+		
+			covered = covered + 1
+		end
+		--[[setColor( 0, 0, 0, 255 )
+		P1 = shape.points[k] + shape.points[k].normal
+		P2 = shape.points[k+1] + shape.points[k+1].normal
+		drawLineAA( shape.imageData, P1.x, P1.y, P2.x, P2.y, 1 )
+		]]--
+			
+		
+		shape.step_sM = shape.step_sM + 1
+		
+		if shape.step_sM == #shape.points then
+			shape.bool_specularMap = true
+		end
+	end
+end
+
+-- iterator over arguments:
+function splitArguments( str )
+	local function iterator( t, i )
+		i = i+1
+		local pos = str:find("|")
+		if pos then
+			local foundStr = str:sub( 1, pos-1 )
+			str = str:sub( pos+1 )
+			return i, foundStr
+		end
+		return nil
+	end
+	return iterator, str, 0
+end
 	
 function runThread()
 	while true do
@@ -713,20 +787,9 @@ function runThread()
 				minX,minY,maxX,maxY = split(newShape:sub(1, pos-1), ",")
 				minX,minY,maxX,maxY = tonumber(minX),tonumber(minY),tonumber(maxX),tonumber(maxY)
 				-- minX,minY,maxX,maxY = math.floor(minX),math.floor(minY),math.floor(maxX),math.floor(maxY)
+				newShape = newShape:sub(pos+1)
 
-				pointList = newShape:sub(pos+1)
-			
-				--tmpPoints = {split(pointList, "|")}
-			
-				tmpPoints = {}
-				pos = pointList:find("|")
-				while pos do
-					tmpPoints[#tmpPoints + 1] = pointList:sub(1, pos-1)
-					pointList = pointList:sub( pos+1 )
-					pos = pointList:find("|")
-				end
-			
-				-- disregard any earlier rendering for this shape:
+	-- disregard any earlier rendering for this shape:
 				shapeQueue[ID] = {
 					percent = 0,
 					minX = minX,
@@ -738,7 +801,23 @@ function runThread()
 					currentLine = 0,
 					pixelsFilled = 0,
 				}
-			
+
+
+				
+				
+				pos = newShape:find("|")
+				mat = newShape:sub(1, pos-1) or "metal"
+				newShape = newShape:sub(pos+1)
+				
+				shapeQueue[ID].material = loadMaterial( mat )
+				thisThread:set("msg", "material: " .. mat)
+					os.execute("sleep .1" )
+				
+				
+				tmpPoints = {}
+				for k, v in splitArguments( newShape ) do
+					tmpPoints[k] = v
+				end
 			
 				for k = 1, #tmpPoints do
 					shapeQueue[ID].points[k] = Point:new( split(tmpPoints[k], ",") )
@@ -746,6 +825,7 @@ function runThread()
 												- minX + PADDING
 					shapeQueue[ID].points[k].y = tonumber( shapeQueue[ID].points[k].y )
 												- minY + PADDING
+				thisThread:set("msg", "2")
 					--shapeQueue[ID].points[k].x = math.floor( shapeQueue[ID].points[k].x )
 					--shapeQueue[ID].points[k].y = math.floor( shapeQueue[ID].points[k].y )
 					--thisThread:set("msg",  )
@@ -814,10 +894,13 @@ function runThread()
 					checkNormals( s )
 				elseif not s.bool_normalMap then
 					drawNormalMap( s )
+				elseif not s.bool_specularMap then
+					drawSpecularMap( s )
 				else
 					--drawNormals( s )
 					thisThread:set( ID .. "(img)", s.imageData )
 					thisThread:set( ID .. "(nm)", s.normalMap )
+					thisThread:set( ID .. "(sm)", s.specularMap )
 					thisThread:set(  ID .. "(done)", true )
 					shapeQueue[ID] = nil
 					thisThread:set( "msg", "Done: " .. ID )

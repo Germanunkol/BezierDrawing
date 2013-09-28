@@ -30,6 +30,9 @@ function Shape:initialize()
 	--self.insCol = {r=50,g=255,b=20,a=200}
 	self.lineWidth = 2
 	
+	self.materialName = "metal"
+	self.material = loadMaterial( self.materialName )
+	
 	--self.finalCanvas = love.graphics.newCanvas()
 	--self.tempCanvas = love.graphics.newCanvas()
 	self:resetImage()
@@ -49,10 +52,22 @@ function Shape:resetImage()
 end
 
 function interpolate( P1, P2, amount )
-
 	local x = P1.x + (P2.x-P1.x)*amount
 	local y = P1.y + (P2.y-P1.y)*amount
 	return Point:new( x, y )
+end
+
+function Shape:setMaterial( mat )
+	self.materialName = mat
+	self.material = loadMaterial( self.materialName )
+	if self.closed then
+		self:resetImage()
+		self:startFill()
+	end
+end
+
+function Shape:getMaterial()
+	return self.materialName
 end
 
 function Shape:addCorner(x,y)
@@ -314,12 +329,13 @@ function Shape:draw( editMode )
 		local x, y = love.mouse.getPosition()
 		self.shader:send( "LightPos", {x, (love.graphics.getHeight() - y), .04} )
 		self.shader:send("nm", self.image.nm)
+		self.shader:send("sm", self.image.sm)
 	
-		if self.selected then
-			love.graphics.setColor(255,255,255,200)
-		else
+		--if self.selected then
+		--	love.graphics.setColor(255,255,255,200)
+		--else
 			love.graphics.setColor(255,255,255,255)
-		end
+		--end
 		love.graphics.setPixelEffect(self.shader)
 		love.graphics.draw( self.image.img,
 							self.boundingBox.minX - IMG_PADDING,
@@ -471,6 +487,8 @@ function Shape:startFill()
 	serialShape = serialShape .. self.boundingBox.maxX .. ","
 	serialShape = serialShape .. self.boundingBox.maxY .. "}"
 	
+	serialShape = serialShape .. self.materialName .. "|"
+	
 	local startPoint = self.curves[1].cPoints[1]
 	local curPoint = startPoint
 	local curve
@@ -497,8 +515,11 @@ function Shape:startFill()
 	floodFillThread:set("newShape", serialShape)
 end
 
-function Shape:finishFill( img, nm )
+function Shape:finishFill( img, nm, sm )
 	nm:encode("nm.png")
+	--img:encode("img.png")
+	sm:encode("sm.png")
+	
 	self.image.canvas = love.graphics.newCanvas( img:getWidth(), img:getHeight() )
 	love.graphics.setCanvas( self.image.canvas )
 	love.graphics.setLineStyle("smooth")
@@ -507,8 +528,12 @@ function Shape:finishFill( img, nm )
 	img = love.graphics.newImage( img )
 	
 	self.image.nm = love.graphics.newImage( nm )
+	self.image.sm = love.graphics.newImage( sm )
 	
-	love.graphics.setColor( self.insCol.r, self.insCol.g, self.insCol.b, self.insCol.a )
+	love.graphics.setColor( self.material.col.r,
+							self.material.col.g,
+							self.material.col.b,
+							self.material.col.a )
 	love.graphics.draw( img, 0, 0 )
 	--love.graphics.setColor( 255,255,255,255 )
 	--love.graphics.draw( nm, 0, 0 )
@@ -574,8 +599,8 @@ function Shape:update( dt )
 				if done then
 					local img = floodFillThread:demand( self.shapeID .. "(img)")
 					local nm = floodFillThread:demand( self.shapeID .. "(nm)")
-					print("new nm", self.shapeID)
-					self:finishFill( img, nm )
+					local sm = floodFillThread:demand( self.shapeID .. "(sm)")
+					self:finishFill( img, nm, sm )
 				else
 					local img = floodFillThread:get( self.shapeID .. "(img)")
 					if img then
