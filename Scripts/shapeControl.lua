@@ -285,7 +285,7 @@ function ShapeControl:keypressed( key, unicode )
 			self.selectedShape:flip( "y" )
 		end
 	elseif key == "d" then
-		if self.selectedShape and not self.editedShape then
+		if self.selectedShape and not self.editedShape and not self.draggedShape then
 			local new = self.selectedShape:duplicate()
 			self.shapes[#self.shapes+1] = new
 			self.selectedShape:setSelected( false )
