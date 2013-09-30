@@ -635,9 +635,8 @@ function Shape:update( dt )
 				else
 					local tmpimg = floodFillThread:get( self.shapeID .. "(tmpimg)")
 					if tmpimg then
-						tmpimg:encode("test.png")
+						--tmpimg:encode("test.png")
 						self.image.tempImage = love.graphics.newImage( tmpimg )
-					print("\t\tFOUND!")
 					end
 				end
 			end
