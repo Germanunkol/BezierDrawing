@@ -922,7 +922,8 @@ function runThread()
 			thisThread:set(ID .. "(%)", s.percent)
 		end
 		if shapeFound == false then
-			os.execute("sleep 0.1")
+			--os.execute("sleep 0.1")
+			love.timer.sleep(0.1)
 		end
 	end
 end
