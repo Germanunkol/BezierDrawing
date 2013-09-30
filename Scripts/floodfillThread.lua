@@ -100,11 +100,10 @@ end
 function drawLine( imgData, x1, y1, x2, y2 )
 	--thisThread:set("msg", "line: " .. x1 .. " " .. y1 .. " " .. x2 .. " " .. y2 .. " " .. col.r .. " " .. col.b .. " " ..col.g .. " " .. col.a .. " ")
 	
-	--[[x1 = math.floor(x1)
+	x1 = math.floor(x1)
 	y1 = math.floor(y1)
 	x2 = math.floor(x2)
 	y2 = math.floor(y2)
-	]]--
 	
 	local dx = x2-x1
 	local dy = y2-y1
@@ -132,7 +131,8 @@ function drawLine( imgData, x1, y1, x2, y2 )
 	
 	x = clamp(math.floor(x), 0, imgData:getWidth()-1)
 	y = clamp(math.floor(y), 0, imgData:getHeight()-1)
-	alphaOverlayColor( imgData, x, y, col.r, col.g, col.b, col.a )
+	--alphaOverlayColor( imgData, x, y, col.r, col.g, col.b, col.a )
+	imgData:setPixel( x, y, col.r, col.g, col.b, col.a )
 	local err = dx/2
 
 	for t=0,el do
@@ -152,7 +152,8 @@ function drawLine( imgData, x1, y1, x2, y2 )
       
 		x = clamp(math.floor(x), 0, imgData:getWidth()-1)
 		y = clamp(math.floor(y), 0, imgData:getHeight()-1)
-		alphaOverlayColor( imgData, x, y, col.r, col.g, col.b, col.a )
+		--alphaOverlayColor( imgData, x, y, col.r, col.g, col.b, col.a )
+		imgData:setPixel( x, y, col.r, col.g, col.b, col.a )
    end
 end
 
@@ -369,6 +370,9 @@ end
 -- image can be discared: it can never happen because the shape is
 -- padded by a few pixels in all directions (phew!)
 function isInsideShape( shape, x, y )
+	x = math.floor(x)
+	y = math.floor(y)
+
 	if x < 0 or x > shape.imageData:getWidth() - 1 or 
 		y < 0 or y > shape.imageData:getHeight() - 1 then
 		return false
@@ -384,6 +388,7 @@ function isInsideShape( shape, x, y )
 	local iterations = 0
 	local intersectionsUp = 0
 	local lastWasOnLine, thisIsOnLine = false, false
+	
 	for y1 = y-1,0,-1 do	-- move upwards and check the intersections
 		thisIsOnLine = false
 		r,g,b,a = shape.imageData:getPixel( x, y1 )
@@ -395,12 +400,10 @@ function isInsideShape( shape, x, y )
 			intersectionsUp = intersectionsUp + 1
 		end
 		iterations = iterations +1
-		--thisThread:set("msg", iterations .. " " .. tostring(lastWasOnLine) .. " " .. tostring(thisIsOnLine))
-		--os.execute("sleep .1")
+		--thisThread:set("msg", "\t" .. iterations .. " " .. tostring(lastWasOnLine) .. " " .. tostring(thisIsOnLine) .. " @" .. x .. " " .. y1 )
+		--love.timer.sleep(0.1)
 		lastWasOnLine = thisIsOnLine
 	end
-		--thisThread:set("msg", "intersectionsUp: " .. intersectionsUp)
-		--os.execute("sleep .1")
 	
 	local intersectionsDown = 0
 	lastWasOnLine, thisIsOnLine = false, false
@@ -454,7 +457,7 @@ function isInsideShape( shape, x, y )
 		intersectionsLeft % 2 == 1 and intersectionsRight % 2 == 1 then
 		return true
 	end
-	--thisThread:set("msg", intersectionsUp .. " " .. intersectionsDown .. " " .. intersectionsLeft .. " " .. intersectionsRight)
+
 	return false
 end
 
@@ -489,7 +492,6 @@ function correctShapeDirection( shape )
 		
 		isInside1 = isInsideShape( shape,
 					shape.points[k].x + normal1.x, shape.points[k].y + normal1.y )
-		
 		isInside2 = isInsideShape( shape,
 					shape.points[k].x + normal2.x, shape.points[k].y + normal2.y )
 					
@@ -834,7 +836,7 @@ function runThread()
 						shapeQueue[ID].points[k].x == shapeQueue[ID].points[k-1].x and
 						shapeQueue[ID].points[k].y == shapeQueue[ID].points[k-1].y then
 						thisThread:set("msg", "\t\tDOUBLE!!" .. shapeQueue[ID].points[k].x .. " | " .. shapeQueue[ID].points[k].y)
-			love.timer.sleep(0.1)
+						love.timer.sleep(0.1)
 					end
 				end
 			

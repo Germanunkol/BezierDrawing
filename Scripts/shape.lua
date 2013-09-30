@@ -369,7 +369,7 @@ function Shape:draw( editMode )
 			--end
 		--end
 		love.graphics.setPixelEffect()
-	else
+	elseif not self.image.tempImage then
 		for k,c in pairs( self.curves ) do
 			c:draw( self.editing, self.closed )
 		end
@@ -632,12 +632,13 @@ function Shape:update( dt )
 					local nm = floodFillThread:demand( self.shapeID .. "(nm)")
 					local sm = floodFillThread:demand( self.shapeID .. "(sm)")
 					self:finishFill( img, nm, sm )
-				--[[else
-					local img = floodFillThread:get( self.shapeID .. "(img)")
-					if img then
-						self.image.tempImage = love.graphics.newImage( img )
+				else
+					local tmpimg = floodFillThread:get( self.shapeID .. "(tmpimg)")
+					if tmpimg then
+						tmpimg:encode("test.png")
+						self.image.tempImage = love.graphics.newImage( tmpimg )
+					print("\t\tFOUND!")
 					end
-					]]--
 				end
 			end
 		end

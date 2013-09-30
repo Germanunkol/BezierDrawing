@@ -327,7 +327,7 @@ end
 
 function ShapeControl:update( mX, mY, dt )
 	if not self.materialsRendered then
-		self:renderMaterials()
+		--self:renderMaterials()
 	end
 
 	for k = 1, #self.shapes do
