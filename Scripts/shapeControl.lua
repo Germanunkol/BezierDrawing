@@ -312,6 +312,9 @@ function ShapeControl:draw()
 	if self.editedShape then
 		self.editedShape:draw( self.editedShape )
 	end
+	if self.selectedShape then
+		self.selectedShape:drawOutline()
+	end
 end
 function ShapeControl:drawUI()
 	--if self.selectedShape then

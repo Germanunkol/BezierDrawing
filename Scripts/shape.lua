@@ -389,26 +389,6 @@ function Shape:draw( editMode )
 	else
 		love.graphics.setColor(255,120,50, 150)
 	end
-	if self.boundingBox and self.selected or self.editing then
-		love.graphics.setLineWidth( math.max( 1/cam:getZoom(), 1) )
-		local str
-		if self.boundingBox.minX and self.boundingBox.maxX ~= self.boundingBox.minX then
-			love.graphics.line( self.boundingBox.minX, self.boundingBox.maxY + 20,
-					self.boundingBox.maxX, self.boundingBox.maxY + 20)
-			str = pixelsToMeters(math.floor(self.boundingBox.maxX - self.boundingBox.minX)) .. " m"
-			love.graphics.print( str, self.boundingBox.maxX - love.graphics.getFont():getWidth(str),
-					self.boundingBox.maxY + 22)
-		end
-				
-		if self.boundingBox.minY and self.boundingBox.maxY ~= self.boundingBox.minY then
-			love.graphics.line( self.boundingBox.maxX + 20, self.boundingBox.minY,
-					self.boundingBox.maxX + 20, self.boundingBox.maxY)
-			str = pixelsToMeters(math.floor(self.boundingBox.maxY - self.boundingBox.minY)) .. " m"
-			love.graphics.print( str, self.boundingBox.maxX + 22,
-					self.boundingBox.maxY - love.graphics.getFont():getHeight())
-		end
-	end
-	
 	if self.image then
 		if self.image.rendering then
 			love.graphics.print( "Rendering (" .. self.image.percent .. "%)", 
@@ -427,6 +407,34 @@ function Shape:draw( editMode )
 	
 	if self.dragged then
 		love.graphics.pop()
+	end
+end
+
+function Shape:drawOutline()
+	if self.dragged then
+		love.graphics.setColor(100,160,255, 255)
+	else
+		love.graphics.setColor(255,120,50, 150)
+	end
+	
+	if self.boundingBox and self.selected or self.editing then
+		love.graphics.setLineWidth( math.max( 1/cam:getZoom(), 1) )
+		local str
+		if self.boundingBox.minX and self.boundingBox.maxX ~= self.boundingBox.minX then
+			love.graphics.line( self.boundingBox.minX, self.boundingBox.maxY + 20,
+					self.boundingBox.maxX, self.boundingBox.maxY + 20)
+			str = pixelsToMeters(math.floor(self.boundingBox.maxX - self.boundingBox.minX)) .. " m"
+			love.graphics.print( str, self.boundingBox.maxX - love.graphics.getFont():getWidth(str),
+					self.boundingBox.maxY + 22)
+		end
+				
+		if self.boundingBox.minY and self.boundingBox.maxY ~= self.boundingBox.minY then
+			love.graphics.line( self.boundingBox.maxX + 20, self.boundingBox.minY,
+					self.boundingBox.maxX + 20, self.boundingBox.maxY)
+			str = pixelsToMeters(math.floor(self.boundingBox.maxY - self.boundingBox.minY)) .. " m"
+			love.graphics.print( str, self.boundingBox.maxX + 22,
+					self.boundingBox.maxY - love.graphics.getFont():getHeight())
+		end
 	end
 end
 
