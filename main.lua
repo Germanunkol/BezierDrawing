@@ -22,7 +22,8 @@ end
 
 function love.load()
 
-	-- love.graphics.setMode( 1600, 800, false )
+	assert(love.graphics.isSupported("canvas"), "Your graphics card does not support canvases, sorry!")
+	assert(love.graphics.isSupported("pixeleffect"), "Your graphics card does not support shaders, sorry!")
 
 	filename = arg[2]
 
