@@ -413,6 +413,8 @@ end
 function Shape:drawOutline()
 	if self.dragged then
 		love.graphics.setColor(100,160,255, 255)
+		love.graphics.push()
+		love.graphics.translate( self.offsetX, self.offsetY )
 	else
 		love.graphics.setColor(255,120,50, 150)
 	end
@@ -432,10 +434,28 @@ function Shape:drawOutline()
 			love.graphics.line( self.boundingBox.maxX + 20, self.boundingBox.minY,
 					self.boundingBox.maxX + 20, self.boundingBox.maxY)
 			str = pixelsToMeters(math.floor(self.boundingBox.maxY - self.boundingBox.minY)) .. " m"
-			love.graphics.print( str, self.boundingBox.maxX + 22,
+			love.graphics.print( str, self.boundingBox.maxX + 24,
 					self.boundingBox.maxY - love.graphics.getFont():getHeight())
 		end
+		self:drawLayer()
 	end
+	
+	if self.dragged then
+		love.graphics.pop()
+	end
+end
+
+function Shape:drawLayer()
+	if self.boundingBox then
+		if self.layer then
+			love.graphics.print( self.layer, self.boundingBox.maxX + 24,
+					self.boundingBox.minY + 2)
+		end
+	end
+end
+
+function Shape:setLayer( layer )
+	self.layer = layer
 end
 
 function Shape:setEditing( bool )

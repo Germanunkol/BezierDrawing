@@ -46,6 +46,7 @@ function ShapeControl:newShape()
 	
 	self.shapes[#self.shapes + 1] = s
 	self.waitedTime = 0
+	s:setLayer( #self.shapes )
 	return s
 end
 
@@ -245,6 +246,9 @@ function ShapeControl:keypressed( key, unicode )
 			for k = 1, #self.shapes-1 do	-- if it's the highest shape, don't bother moving it up
 				if self.shapes[k] == self.selectedShape then
 					self.shapes[k], self.shapes[k+1] = self.shapes[k+1], self.shapes[k]
+					self.shapes[k]:setLayer( k )
+					self.shapes[k+1]:setLayer( k+1 )
+					print("new layers:", k, k+1)
 					break
 				end
 			end
@@ -254,6 +258,8 @@ function ShapeControl:keypressed( key, unicode )
 			for k = #self.shapes, 2, -1 do	-- if it's the lowest shape, don't bother moving it
 				if self.shapes[k] == self.selectedShape then
 					self.shapes[k], self.shapes[k-1] = self.shapes[k-1], self.shapes[k]
+					self.shapes[k]:setLayer( k )
+					self.shapes[k-1]:setLayer( k-1 )
 					break
 				end
 			end
@@ -291,6 +297,7 @@ function ShapeControl:keypressed( key, unicode )
 			self.selectedShape:setSelected( false )
 			new:setSelected( true )
 			self.selectedShape = new
+			new:setLayer( #self.shapes )
 		end
 	end
 	
@@ -316,6 +323,8 @@ function ShapeControl:draw()
 		self.selectedShape:drawOutline()
 	end
 end
+
+local mouseX, mouseY = 0,0
 function ShapeControl:drawUI()
 	--if self.selectedShape then
 		for k = 1,#self.materials do
@@ -326,9 +335,16 @@ function ShapeControl:drawUI()
 			self.materials[k].currentShape:draw( )
 		end
 	--end
+	love.graphics.setColor(255,255,255,255)
+	local str = "(" .. mouseX/self.gridSize .. "," .. mouseY/self.gridSize .. ")"
+	love.graphics.print(str, love.graphics.getWidth()-love.graphics.getFont():getWidth(str) - 10,
+							love.graphics.getHeight() - 30)
 end
 
 function ShapeControl:update( mX, mY, dt )
+
+	mouseX, mouseY = mX, mY
+
 	if not self.materialsRendered then
 		self:renderMaterials()
 	end
