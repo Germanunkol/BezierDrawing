@@ -189,3 +189,20 @@ function loadMaterial( mat )
 	end
 	return m
 end
+
+----------------------------------
+
+-- iterates over a text and returns the lines one by one:
+function lines( str )
+	local function iterator( t, i )
+		i = i+1
+		local pos = str:find("\r\n") or str:find("\n")
+		if pos then
+			local foundStr = str:sub( 1, pos-1 )
+			str = str:sub( pos+1 )
+			return i, foundStr
+		end
+		return nil
+	end
+	return iterator, str, 0
+end

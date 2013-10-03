@@ -539,11 +539,12 @@ function ShapeControl:load()
 	self.editedShape = nil
 	self.draggedShape = nil
 	
-	print("loading:", self.designName .. ".sav" )
+	print("Loading:", self.designName .. ".sav" )
 	
 	if self.designName then
-		local content = love.filesystem.read( "Designs/" .. self.designName .. ".sav" )
-		while content and #content > 0 do
+		local ok, content = pcall(love.filesystem.read, "Designs/" .. self.designName .. ".sav" )
+		if not ok then print("\tDidn't find " .. self.designName .. ".sav" ) end
+		while ok and content and #content > 0 do
 			
 			s, e = string.find(content, "Shape:.-endShape")
 			if s and e then
@@ -558,10 +559,59 @@ function ShapeControl:load()
 end
 
 function ShapeControl:shapeFromString( str )
+
+	-- initialize with default values:
 	local tmpShape = {
-		points = {}
+		materialName = "metal",
+		x = 0,
+		y = 0,
+		closed = false,
+		points = {},
 	}
-	-- temporary:
-	return nil
+	
+	-- get the actual values from the string:
+	local key, value, pos, x, y
+	for k, line in lines(str) do
+		key, value = line:match("\t(.+): (.+)")
+		if key and value then
+			print("found:", key, value)
+			if key == "material" then
+				tmpShape.materialName = value
+			elseif key == "closed" then
+				if value == "true" then
+					tmpShape.closed = true
+				end
+			elseif key == "x" then
+				tmpShape.x = tonumber(value)
+			elseif key == "y" then
+				tmpShape.y = tonumber(value)
+			elseif key == "Point" then
+				x, y = value:match("([%d\.]+), ([%d\.]+)")
+				print("\t\t", x, y)
+				tmpShape.points[#tmpShape.points+1] = {x=x, y=y}
+			end
+		end
+	end
+
+
+	local shape = Shape:new( tmpShape.materialName )
+
+	for k = 1, #tmpShape.points do
+		--tmpShape.points[k].x = tmpShape.points[k].x + tmpShape.x
+		--tmpShape.points[k].y = tmpShape.points[k].y + tmpShape.y
+	end
+	
+	for k = 1, #tmpShape.points, 3 do
+		shape:addCorner( tmpShape.points[k].x, tmpShape.points[k].y )
+	end
+	
+	if tmpShape.closed then
+		shape:close()	
+	end
+	
+	shape:setEditing( false )
+	shape:setSelected( false )
+	
+	return shape
 end
 -------------------------------------------
