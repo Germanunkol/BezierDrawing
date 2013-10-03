@@ -7,7 +7,15 @@ ShapeControl = class("ShapeControl")
 
 floodFillThread = nil
 
-function ShapeControl:initialize( gridSize, canvasWidth, canvasHeight, filename )
+local fileHeader = [[
+-------------------------------------------
+Design saved using Germanunkol's Bezier Design tool.
+To open the file, install the Löve engine (Love2d.org) and get the project from:
+https://github.com/Germanunkol/BezierDrawing
+-------------------------------------------
+]]
+
+function ShapeControl:initialize( gridSize, canvasWidth, canvasHeight, designName )
 	self.gridSize = gridSize or 10
 	self.canvasWidth = canvasWidth
 	self.canvasHeight = canvasHeight
@@ -29,6 +37,11 @@ function ShapeControl:initialize( gridSize, canvasWidth, canvasHeight, filename 
 	floodFillThread:start()
 	
 	self:loadMaterials()
+	
+	self.designName = designName or os.time()
+	self:load()
+	
+	love.filesystem.mkdir("Designs")
 end
 
 function ShapeControl:getSelectedShape()
@@ -299,6 +312,10 @@ function ShapeControl:keypressed( key, unicode )
 			self.selectedShape = new
 			new:setLayer( #self.shapes )
 		end
+	elseif key == "s" then
+		self:save()
+	elseif key == "l" then
+		self:load()
 	end
 	
 	if key == "escape" then
@@ -335,10 +352,11 @@ function ShapeControl:drawUI()
 			self.materials[k].currentShape:draw( )
 		end
 	--end
-	love.graphics.setColor(255,255,255,255)
+	love.graphics.setColor(255,120,50, 255)
 	local str = "(" .. mouseX/self.gridSize .. "," .. mouseY/self.gridSize .. ")"
 	love.graphics.print(str, love.graphics.getWidth()-love.graphics.getFont():getWidth(str) - 10,
 							love.graphics.getHeight() - 30)
+	love.graphics.setColor(255,255,255,255)
 end
 
 function ShapeControl:update( mX, mY, dt )
@@ -497,6 +515,53 @@ function ShapeControl:uiHit()
 	return false
 end
 
-function ShapeControl:save()
 
+-------------------------------------------
+-- Save and load to the current imgName:
+-------------------------------------------
+function ShapeControl:save()
+	print("saving:", self.designName .. ".sav" )
+	if self.designName then
+		local content = fileHeader
+		
+		-- go through the shapes in order of layer and append them:
+		for k = 1, #self.shapes do
+			content = content .. tostring(self.shapes[k])
+		end
+		love.filesystem.write( "Designs/" .. self.designName .. ".sav", content )
+	end
 end
+
+function ShapeControl:load()
+	
+	self.shapes = {}
+	self.selectedShape = nil
+	self.editedShape = nil
+	self.draggedShape = nil
+	
+	print("loading:", self.designName .. ".sav" )
+	
+	if self.designName then
+		local content = love.filesystem.read( "Designs/" .. self.designName .. ".sav" )
+		while content and #content > 0 do
+			
+			s, e = string.find(content, "Shape:.-endShape")
+			if s and e then
+				print("Found shape:", content:sub(s,e))
+				self.shapes[#self.shapes+1] = ShapeControl:shapeFromString( content:sub(s,e) )
+				content = content:sub(e+1, #content)
+			else
+				break
+			end
+		end
+	end
+end
+
+function ShapeControl:shapeFromString( str )
+	local tmpShape = {
+		points = {}
+	}
+	-- temporary:
+	return nil
+end
+-------------------------------------------

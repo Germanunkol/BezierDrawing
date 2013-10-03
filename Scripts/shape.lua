@@ -791,3 +791,40 @@ function Shape:duplicate()
 	
 	return new
 end
+
+function Shape:__tostring()
+	for i = 1, #self.curves do
+		self.curves[i].cPoints[1].hasBeenSaved = false
+		self.curves[i].cPoints[4].hasBeenSaved = false
+	end
+	local str = "\nShape: " .. self.shapeID .. "\n"
+	str = str .. "\tmaterial: " .. self.materialName .. "\n"
+	str = str .. "\tclosed: " .. (self.closed and tostring(self.closed) or "false") .. "\n"
+	if self.boundingBox then
+		str = str .. "\tx: " .. self.boundingBox.minX .. "\n"
+		str = str .. "\ty: " .. self.boundingBox.minY .. "\n"
+	end
+
+	local corner = self.corners[1]
+	if corner then
+		repeat
+			c = corner.bezierNext
+			if not c then break end
+			if not c.cPoints[1].hasBeenSaved then
+				str = str .. "\t" .. tostring(c.cPoints[1]) .. "\n"
+				c.cPoints[1].hasBeenSaved = true
+			end
+			str = str .. "\t" .. tostring(c.cPoints[2]) .. "\n"
+			str = str .. "\t" .. tostring(c.cPoints[3]) .. "\n"
+			if not c.cPoints[4].hasBeenSaved then
+				str = str .. "\t" .. tostring(c.cPoints[4]) .. "\n"
+				c.cPoints[4].hasBeenSaved = true
+			end
+			corner = corner.next
+		until corner == self.corners[1]
+	end
+	
+	str = str .. "endShape\n"
+	
+	return str
+end

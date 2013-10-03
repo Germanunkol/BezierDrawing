@@ -6,30 +6,16 @@ local canvasWidth = 50
 local canvasHeight = 50
 local shapeControl
 
-function splitArguments( str )
-	local function iterator( t, i )
-		i = i+1
-		local pos = str:find("|")
-		if pos then
-			local foundStr = str:sub( 1, pos-1 )
-			str = str:sub( pos+1 )
-			return i, foundStr
-		end
-		return nil
-	end
-	return iterator, str, 0
-end
-
 function love.load()
 
 	assert(love.graphics.isSupported("canvas"), "Your graphics card does not support canvases, sorry!")
 	assert(love.graphics.isSupported("pixeleffect"), "Your graphics card does not support shaders, sorry!")
 
-	filename = arg[2]
+	local imgName = arg[2]
 
 	love.filesystem.setIdentity("BezierDrawing")
 
-	shapeControl = ShapeControl:new( gridSize, canvasWidth, canvasHeight, filename )
+	shapeControl = ShapeControl:new( gridSize, canvasWidth, canvasHeight, imgName )
 	
 	cam = Camera:new( .25, 2, gridSize*canvasWidth/2, gridSize*canvasHeight/2 )
 	
