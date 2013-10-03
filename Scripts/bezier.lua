@@ -35,7 +35,6 @@ function Bezier:initialize( cPoints, segmentAngle, width )
 	
 	self.boundingBox = {}
 	self:update()
-	--self:setModified()
 end
 
 function Bezier:print()

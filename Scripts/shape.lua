@@ -73,6 +73,10 @@ function Shape:getMaterial()
 	return self.materialName
 end
 
+function Shape:setModified()
+	self.modified = true
+end
+
 function Shape:addCorner(x,y)
 
 	if self.selectedCorner then
@@ -116,6 +120,7 @@ function Shape:addCorner(x,y)
 	
 	self:selectCorner( newCorner )
 	self.modified = true
+	return newCorner
 end
 
 function Shape:addCurve( connectTo )
@@ -573,7 +578,7 @@ end
 
 function Shape:finishFill( img, nm, sm )
 	--nm:encode("nm.png")
-	--img:encode("img.png")
+	img:encode("img.png")
 	--sm:encode("sm.png")
 	
 	self.image.canvas = love.graphics.newCanvas( img:getWidth(), img:getHeight() )
@@ -586,10 +591,12 @@ function Shape:finishFill( img, nm, sm )
 	self.image.nm = love.graphics.newImage( nm )
 	self.image.sm = love.graphics.newImage( sm )
 	
-	love.graphics.setColor( self.material.col.r,
+	--[[love.graphics.setColor( self.material.col.r,
 							self.material.col.g,
 							self.material.col.b,
 							self.material.col.a )
+	]]--
+	love.graphics.setColor(255,255,255,255)
 	love.graphics.draw( img, 0, 0 )
 	--love.graphics.setColor( 255,255,255,255 )
 	--love.graphics.draw( nm, 0, 0 )
@@ -777,6 +784,7 @@ function Shape:duplicate()
 	for k = 1, #new.corners do
 		newCorner = new.corners[k]
 		newCurve, oldCurve = newCorner.bezierNext, oldCorner.bezierNext
+		
 		-- copy the two center control points of the curve (they're not corners)
 		local x, y = oldCurve.cPoints[2].x, oldCurve.cPoints[2].y
 		newCurve.cPoints[2].x, newCurve.cPoints[2].y = x,y

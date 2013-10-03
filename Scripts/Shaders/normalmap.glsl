@@ -7,7 +7,7 @@ uniform sampler2D sm;
 
 uniform vec2 Resolution = vec2(500,300);      //resolution of screen
 vec4 LightColor = vec4(1.0, 0.8, 0.6, 1.0);      //light RGBA -- alpha is intensity
-vec4 AmbientColor = vec4(0.6, 0.6, 1.0, 0.5);    //ambient RGBA -- alpha is intensity 
+vec4 AmbientColor = vec4(1.0, 1.0, 1.0, 0.5);    //ambient RGBA -- alpha is intensity 
 //vec3 Falloff = vec3(0.4,3,20);         //attenuation coefficients
 vec3 Falloff = vec3(0.8,1.0,3.0);         //attenuation coefficients
 

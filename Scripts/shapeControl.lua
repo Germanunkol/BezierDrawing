@@ -609,9 +609,34 @@ function ShapeControl:shapeFromString( str )
 		shape:close()	
 	end
 	
+	local corner, k2
+	for k = 1, #shape.corners do
+		corner = shape.corners[k]
+		if corner.bezierNext then
+			k2 = (k-1)*3+1		-- index of the corner in the full point list
+			-- set the two control points that aren't corners to the correct positions:
+			if corner.bezierNext.cPoints[2].x ~= tmpShape.points[k2+1].x or
+				corner.bezierNext.cPoints[2].y ~= tmpShape.points[k2+1].y then
+				
+				corner.bezierNext.cPoints[2].x = tmpShape.points[k2+1].x
+				corner.bezierNext.cPoints[2].y = tmpShape.points[k2+1].y
+				corner.bezierNext.cPoints[2].hasBeenMoved = true
+			end
+			if corner.bezierNext.cPoints[3].x ~= tmpShape.points[k2+2].x or
+				corner.bezierNext.cPoints[3].y ~= tmpShape.points[k2+2].y then
+				
+				corner.bezierNext.cPoints[3].x = tmpShape.points[k2+2].x
+				corner.bezierNext.cPoints[3].y = tmpShape.points[k2+2].y
+				corner.bezierNext.cPoints[3].hasBeenMoved = true
+			end
+			corner.bezierNext:setModified()
+		end
+	end
+	
 	shape:setEditing( false )
 	shape:setSelected( false )
-	
+	shape:setModified()
+	shape:calcBoundingBox()
 	return shape
 end
 -------------------------------------------
