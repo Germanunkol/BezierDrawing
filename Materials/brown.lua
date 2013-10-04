@@ -6,16 +6,16 @@ local function profile( dir, amount )
 	return normal3D.x, normal3D.y, amount
 end
 
-local function specularFalloff( dir, amount )
-	return 1*amount, 0.5*amount, 0.3*amount
+local function profileSpecular( dir, amount )
+	return 255, 255, 255
 end
 
 local mat = {
 	col = { r = 133, g=85, b=10, a=255 },
 	profile = profile,
 	profileDepth = 20,
-	specular = { r = 255, g=155, b=60 },
-	specularFalloff = specularFalloff,
+	specular = { r = 255, g=255, b=255 },
+	profileSpecular = profileSpecular,
 }
 
 return mat

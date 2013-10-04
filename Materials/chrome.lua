@@ -1,13 +1,23 @@
 -- material to be used in vessel construction
 
 local function profile( dir, amount )
-	local len = 1-amount
-	local normal3D = dir
-	return normal3D.x, normal3D.y, amount
+	local normal3D
+	if amount > 0.8 then
+		dir = dir*(1 - (amount - 0.8)*(amount - 0.8)*30)
+	end
+	return dir.x, dir.y, amount
+end
+
+local function profileSpecular( dir, amount )
+	if amount > 0.8 then
+		return 190,255,255
+	else
+		return 155, 200, 200
+	end
 end
 
 local function pattern( x, y )
-	return 20,20,20,255
+	return 255,255,255,255
 end
 
 local function patternNormal( x, y )
@@ -24,14 +34,14 @@ local mat = {
 	col = { r = 50, g=50, b=50, a=255 },
 	-- profile function:
 	profile = profile,
-	profileDepth = 30,
-	specular = { r = 255, g=155, b=60 },
-	--profileSpecular = profileSpecular,
+	profileDepth = 10,
+	specular = { r = 155, g=200, b=200 },
+	profileSpecular = profileSpecular,
 	patternWidth = 20,
 	patternHeight = 30,
 	pattern = pattern,
-	patternNormal = patternNormal,
-	patternSpecular = patternSpecular,
+	--patternNormal = patternNormal,
+	--patternSpecular = patternSpecular,
 }
 
 return mat

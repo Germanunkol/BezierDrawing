@@ -539,7 +539,9 @@ function calcNormals( shape )
 		end
 		segDir1 = P2 - P1
 		normal1 = Point:new( -segDir1.y, segDir1.x )
-		normal1 = normal1*(10/normal1:getLength())
+		if shape.material.profileDepth then
+			normal1 = normal1*(shape.material.profileDepth/normal1:getLength())
+		end
 	
 		if k == #shape.points then
 			P3 = shape.points[2]
@@ -548,7 +550,10 @@ function calcNormals( shape )
 		end
 		segDir2 = P3 - P2
 		normal2 = Point:new( -segDir2.y, segDir2.x )
-		normal2 = normal2*(10/normal2:getLength())
+		
+		if shape.material.profileDepth then
+			normal2 = normal2*(shape.material.profileDepth/normal2:getLength())
+		end
 		
 		intersection = lineIntersections( P2 + normal1, P1 + normal1,
 												P2 + normal2, P3 + normal2)
@@ -560,14 +565,17 @@ function calcNormals( shape )
 		drawLine( shape.imageData, (P2).x, (P2).y, (P2 + normal2).x, (P2 + normal2).y )
 			]]--
 			shape.points[k].normal = intersection - shape.points[k]
+		thisThread:set("msg", shape.points[k].normal:getLength())
 		else
 			shape.points[k].normal = normal1
 		end
 		
+		--[[
 		len = shape.points[k].normal:getLength()
 		if len > 40 then
 			shape.points[k].normal = shape.points[k].normal*(40/len)
 		end
+		]]--
 		
 		--shape.points[k].normal = shape.points[k].normal
 		shape.points[k].lineNormal = normal2
@@ -695,7 +703,7 @@ function drawNormalMapBorder( shape )
 			--x = dir.x
 			--y = dir.y
 			--z = dir:getLength()*
-
+			
 			len = math.sqrt(x*x+y*y+z*z)
 			x = (x/len)/2+0.5
 			y = (y/len)/2+0.5
@@ -708,7 +716,7 @@ function drawNormalMapBorder( shape )
 
 			drawLineAA( shape.normalMap, P1.x, P1.y, P2.x, P2.y )
 	
-			covered = covered + 1
+			covered = covered + 0.3
 		end
 		--[[setColor( 0, 0, 0, 255 )
 		P1 = shape.points[k] + shape.points[k].normal
@@ -741,19 +749,44 @@ end
 function drawSpecularMap( shape )
 	if not shape.specularMap then
 		shape.specularMap = love.image.newImageData( shape.width, shape.height )
-		shape.specularMap:paste( shape.imageData, 0, 0 )
-		shape.step_sM = 1
-		if not shape.material.specular then
-			shape.specularMap:mapPixel( plainSpecMap( 255,255,255,255 ) )
-			shape.bool_specularMap = true
+		
+		if shape.material.patternSpecular then
+		
+			local r,g,b,a, dX, dY
+			for x = 0, shape.imageData:getWidth()-1 do
+				for y = 0, shape.imageData:getHeight()-1 do
+					r,g,b,a = shape.imageData:getPixel( x, y )
+					if a > 0 then
+						dX = (x % shape.material.patternWidth)/shape.material.patternHeight
+						dY = (y % shape.material.patternHeight)/shape.material.patternHeight
+						r,g,b,a = shape.material.patternSpecular( dX, dY )
+						r = r or 255
+						g = g or 255
+						b = b or 255
+						a = a or 255
+						shape.specularMap:setPixel( x, y, r, g, b, a )
+					end
+				end
+			end
 		else
-			shape.specularMap:mapPixel( plainSpecMap(
+			shape.specularMap:paste( shape.imageData, 0, 0 )
+			if shape.material.specular then
+				shape.specularMap:mapPixel( plainSpecMap(
 										shape.material.specular.r,
 										shape.material.specular.g,
 										shape.material.specular.b,
 										255 ) )
+			else
+				shape.specularMap:mapPixel( plainSpecMap( 255, 255, 255, 255 ) )
+			end
 		end
-	else
+		shape.step_sM = 1
+	end
+	shape.bool_specularMap = true
+end
+
+function drawSpecularMapBorder( shape )
+	if shape.specularMap and shape.material.profileSpecular then
 		k = shape.step_sM
 		
 		local P1, P2
@@ -767,15 +800,19 @@ function drawSpecularMap( shape )
 		while covered < thickness do
 	
 			--Color.rgb = Normal.xyz / 2.0 + 0.5;
-			x, y, z = shape.material.specularFalloff( dir, covered/thickness)
-			setColor( 255*x, 255*y, 255*z, 255 )
+			r, g, b, a = shape.material.profileSpecular( dir, covered/thickness)
+			r = r or 255
+			g = g or 255
+			b = b or 255
+			a = a or 255
+			setColor( r, g, b, a )
 		
 			P1 = shape.points[k] + shape.points[k].normal*(covered/thickness)
 			P2 = shape.points[k+1] + shape.points[k+1].normal*(covered/thickness)
 	
 			drawLineAA( shape.specularMap, P1.x, P1.y, P2.x, P2.y )
 		
-			covered = covered + 1
+			covered = covered + 0.3
 		end
 		--[[setColor( 0, 0, 0, 255 )
 		P1 = shape.points[k] + shape.points[k].normal
@@ -787,8 +824,10 @@ function drawSpecularMap( shape )
 		shape.step_sM = shape.step_sM + 1
 		
 		if shape.step_sM == #shape.points then
-			shape.bool_specularMap = true
+			shape.bool_specularMapBorder = true
 		end
+	else
+		shape.bool_specularMapBorder = true
 	end
 	return shape.step_sM
 end
@@ -823,7 +862,7 @@ function drawDiffuse( shape )
 			end
 		end
 	else
-		shape.imageData:mapPixel(plainDiffuseMap(
+		shape.imageData:mapPixel( plainDiffuseMap(
 										shape.material.col.r,
 										shape.material.col.g,
 										shape.material.col.b,
@@ -982,7 +1021,9 @@ function runThread()
 					pos = drawNormalMapBorder( s )
 					s.normalMapPercent = 100*pos/#s.points
 				elseif not s.bool_specularMap then
-					pos = drawSpecularMap( s )
+					drawSpecularMap( s )
+				elseif not s.bool_specularMapBorder then
+					pos = drawSpecularMapBorder( s )
 					s.specMapPercent = 100*pos/#s.points
 				elseif not s.bool_diffuseMap then
 					drawDiffuse( s )
