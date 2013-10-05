@@ -354,8 +354,8 @@ function ShapeControl:drawUI()
 	--end
 	love.graphics.setColor(255,120,50, 255)
 	local str = "(" .. mouseX/self.gridSize .. "," .. mouseY/self.gridSize .. ")"
-	love.graphics.print(str, love.graphics.getWidth()-love.graphics.getFont():getWidth(str) - 10,
-							love.graphics.getHeight() - 30)
+	--love.graphics.print(str, love.graphics.getWidth()-love.graphics.getFont():getWidth(str) - 10,
+	--						love.graphics.getHeight() - 30)
 	love.graphics.setColor(255,255,255,255)
 end
 
@@ -364,7 +364,7 @@ function ShapeControl:update( mX, mY, dt )
 	mouseX, mouseY = mX, mY
 
 	if not self.materialsRendered then
-		self:renderMaterials()
+		--self:renderMaterials()
 	end
 
 	for k = 1, #self.shapes do

@@ -181,9 +181,6 @@ function loadMaterial( mat )
 	if not m then
 		error("Error loading material: " .. mat .. ", not found!")
 	end
-	if not m.profile then
-		error("Error loading material: " .. mat .. ", no profile found!")
-	end
 	--if not m.col then
 	--	error("Error loading material: " .. mat .. ", no colour found!")
 	--end
