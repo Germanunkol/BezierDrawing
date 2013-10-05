@@ -19,7 +19,15 @@ function ShapeControl:initialize( gridSize, canvasWidth, canvasHeight, designNam
 	self.gridSize = gridSize or 10
 	self.canvasWidth = canvasWidth
 	self.canvasHeight = canvasHeight
-	self.shapes = {}
+	
+	self.layers = {
+		[1] = {name = "exterior"},
+		[2] = {name = "interior lower"},
+		[3] = {name = "interior upper"},
+	}
+	
+	self.shapes = self.layers[1]
+	
 	self.selectedShape = nil
 	self.editedShape = nil
 	
@@ -85,6 +93,19 @@ function ShapeControl:getHitShape( mX, mY )
 			if self.shapes[k]:checkLineHit( mX, mY ) then
 				return self.shapes[k]
 			end
+		end
+	end
+end
+
+function ShapeControl:cycleLayers()
+	for k = 1, #self.layers do
+		if self.shapes == self.layers[k] then
+			if k == #self.layers then
+				self.shapes = self.layers[1]
+			else
+				self.shapes = self.layers[k+1]
+			end
+			return
 		end
 	end
 end
@@ -316,6 +337,8 @@ function ShapeControl:keypressed( key, unicode )
 		self:save()
 	elseif key == "l" then
 		self:load()
+	elseif key == "i" then
+		self:cycleLayers()
 	end
 	
 	if key == "escape" then
@@ -357,6 +380,17 @@ function ShapeControl:drawUI()
 	love.graphics.print(str, love.graphics.getWidth()-love.graphics.getFont():getWidth(str) - 10,
 							love.graphics.getHeight() - 30)
 	love.graphics.setColor(255,255,255,255)
+	
+	local x, y, str
+	for k = 1, #self.layers do
+		if self.shapes == self.layers[k] then	
+			love.graphics.setColor(100,160,255, 255)
+		else
+			love.graphics.setColor(255,120,50, 255)
+		end
+		x = love.graphics.getWidth() - 10 - love.graphics.getFont():getWidth(self.layers[k].name)
+		love.graphics.print( self.layers[k].name, x, 10 + k*love.graphics.getFont():getHeight())
+	end
 end
 
 function ShapeControl:update( mX, mY, dt )
@@ -534,7 +568,14 @@ end
 
 function ShapeControl:load()
 	
-	self.shapes = {}
+	self.layers = {
+		[1] = {name = "exterior"},
+		[2] = {name = "interior lower"},
+		[3] = {name = "interior upper"},
+	}
+	
+	self.shapes = self.layers[1]
+	
 	self.selectedShape = nil
 	self.editedShape = nil
 	self.draggedShape = nil

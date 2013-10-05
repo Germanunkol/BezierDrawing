@@ -4,13 +4,20 @@ local function edgeNormal( dir, amount )
 	if amount >= 0.5 then
 		return -dir.x, -dir.y, 0.1
 	else
-		return 0,0,-1
+		return 0,0,1
 	end
 	--return 0,0,1
 end
 
 function edgeDiffuse( dir, amount )
-	return 255,255,255,255
+	if amount <= 0.5 and amount >= 0.2 then
+		return 50,50,50,255
+	end
+	return 200,200,200,230
+end
+
+function edgeSpecular( dir, amount )
+	return 100,100,80,100
 end
 
 local function patternDiffuse( dx, dy )
@@ -56,9 +63,10 @@ local mat = {
 	colSpecular = { r = 100, g=100, b=100 },
 	
 	-- profile:
-	edgeDepth = 6,		-- how far each edge reaches into the shape
+	edgeDepth = 12,		-- how far each edge reaches into the shape
 	edgeNormal = edgeNormal,
 	edgeDiffuse = edgeDiffuse,
+	edgeSpecular = edgeSpecular,
 	
 	-- pattern repeated over the full shape:
 	patternWidth = 20,
