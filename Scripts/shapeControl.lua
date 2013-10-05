@@ -354,8 +354,8 @@ function ShapeControl:drawUI()
 	--end
 	love.graphics.setColor(255,120,50, 255)
 	local str = "(" .. mouseX/self.gridSize .. "," .. mouseY/self.gridSize .. ")"
-	--love.graphics.print(str, love.graphics.getWidth()-love.graphics.getFont():getWidth(str) - 10,
-	--						love.graphics.getHeight() - 30)
+	love.graphics.print(str, love.graphics.getWidth()-love.graphics.getFont():getWidth(str) - 10,
+							love.graphics.getHeight() - 30)
 	love.graphics.setColor(255,255,255,255)
 end
 
@@ -364,7 +364,7 @@ function ShapeControl:update( mX, mY, dt )
 	mouseX, mouseY = mX, mY
 
 	if not self.materialsRendered then
-		--self:renderMaterials()
+		self:renderMaterials()
 	end
 
 	for k = 1, #self.shapes do
@@ -446,7 +446,7 @@ function ShapeControl:loadMaterials()
 		mat.baseShape:addCorner( x-40, y )
 		mat.baseShape:addCorner( x,y )
 		mat.baseShape:addCorner( x,y+30 )
-		mat.baseShape:addCorner( x-40,y+20 )
+		mat.baseShape:addCorner( x-40,y+30 )
 		mat.baseShape:close()		-- add connection between first and last point
 		mat.baseShape:setSelected( false )
 		mat.baseShape:setEditing( false )
@@ -458,7 +458,7 @@ function ShapeControl:loadMaterials()
 		mat.selShape:addCorner( x-60, y )
 		mat.selShape:addCorner( x,y )
 		mat.selShape:addCorner( x,y+30 )
-		mat.selShape:addCorner( x-60,y+20 )
+		mat.selShape:addCorner( x-60,y+30 )
 		mat.selShape:close()		-- add connection between first and last point
 		mat.selShape:setSelected( false )
 		mat.selShape:setEditing( false )

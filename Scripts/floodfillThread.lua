@@ -13,6 +13,11 @@ require('Scripts/point')
 
 thisThread = love.thread.getThread()
 
+local function print( str )
+	thisThread:set("msg", str)
+	love.timer.sleep(0.1)
+end
+
 local shapeQueue = {}
 local lastTime = love.timer.getMicroTime()
 local newTime --= love.timer.getMicroTime()
@@ -158,7 +163,7 @@ function drawLine( imgData, x1, y1, x2, y2 )
 end
 
 function plot( imgData, x, y, alpha )
-	alphaOverlayColor( imgData, x, y, col.r, col.g, col.b, alpha*255 )
+	alphaOverlayColor( imgData, x, y, col.r, col.g, col.b, alpha*col.a )
 	--imgData:setPixel( x, y, col.r, col.g, col.b, alpha*255 )
 end
 
@@ -642,11 +647,13 @@ function drawNormals( shape )
 	end
 end
 
-function plainNormalMap(x, y, r, g, b, a)
-	if a > 0 then
-		return 128,128,255,255
-	else
-		return r, g, b, a
+function plainNormalMap( dx, dy, dz )
+	 return function(x, y, r, g, b, a)
+		if a > 0 then
+			return 127 + dx*127, 127 + dy*127, 127 + dz*127-- + dx*128, 128 +dy*128, 128+dz*128,255
+		else
+			return r, g, b, a
+		end
 	end
 end
 
@@ -678,7 +685,13 @@ function drawNormalMap( shape )
 			end
 		else
 			shape.normalMap:paste( shape.imageData, 0, 0 )
-			shape.normalMap:mapPixel( plainNormalMap )
+			--[[if math.random(2) == 1 then
+			shape.normalMap:mapPixel( plainNormalMap( 0, 0.5, 0.5 ) )
+			else
+			shape.normalMap:mapPixel( plainNormalMap( 0, -0.5, 0.5 ) )
+			end
+			]]--
+			shape.normalMap:mapPixel( plainNormalMap( 0, 0, 1 ) )
 		end
 	end
 	shape.step_nM = 1
@@ -687,7 +700,7 @@ end
 
 function drawNormalMapEdge( shape )
 
-	if shape.normalMap then
+	if shape.normalMap and shape.material.edgeNormal and shape.material.edgeDepth then
 		k = shape.step_nM
 	
 		local P1, P2
@@ -789,7 +802,7 @@ function drawSpecularMap( shape )
 end
 
 function drawSpecularMapEdge( shape )
-	if shape.specularMap and shape.material.edgeSpecular then
+	if shape.specularMap and shape.material.edgeSpecular and shape.material.edgeDepth then
 		k = shape.step_sM
 		
 		local P1, P2
@@ -807,7 +820,7 @@ function drawSpecularMapEdge( shape )
 			r = r or 255
 			g = g or 255
 			b = b or 255
-			a = a or 255
+			a = a or 0
 			setColor( r, g, b, a )
 		
 			P1 = shape.points[k] + shape.points[k].normal*(covered/thickness)
@@ -847,13 +860,14 @@ function drawDiffuseMap( shape )
 				for y = 0, shape.imageData:getHeight()-1 do
 					r,g,b,a = shape.imageData:getPixel( x, y )
 					if (a == insCol.a and r == insCol.r and g == insCol.g and b == insCol.b) then
-						dX = (x % shape.material.patternWidth)/shape.material.patternHeight
+						dX = (x % shape.material.patternWidth)/shape.material.patternWidth
 						dY = (y % shape.material.patternHeight)/shape.material.patternHeight
 						r,g,b,a = shape.material.patternDiffuse( dX, dY )
 						r = r or insCol.r
 						g = g or insCol.g
 						b = b or insCol.b
 						a = a or insCol.a
+					--print(r .. " " .. g .." " .. b .. " " .. dX .. " " .. dY)
 						shape.diffuseMap:setPixel( x, y, r, g, b, a )
 					end
 				end
@@ -878,7 +892,7 @@ function drawDiffuseMap( shape )
 end
 
 function drawDiffuseMapEdge( shape )
-	if shape.diffuseMap and shape.material.edgeDiffuse then
+	if shape.diffuseMap and shape.material.edgeDiffuse and shape.material.edgeDepth then
 		k = shape.step_dM
 		
 		local P1, P2
@@ -915,7 +929,7 @@ function drawDiffuseMapEdge( shape )
 		
 		shape.step_dM = shape.step_dM + 1
 		
-		if shape.step_sM == #shape.points then
+		if shape.step_dM == #shape.points then
 			shape.bool_diffuseMapEdge = true
 		end
 	else
