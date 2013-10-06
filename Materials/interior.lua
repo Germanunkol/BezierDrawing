@@ -13,7 +13,7 @@ function edgeDiffuse( dir, amount )
 	if amount <= 0.5 and amount >= 0.2 then
 		return 50,50,50,255
 	end
-	return 200,200,200,230
+	return 150,150,150,230
 end
 
 function edgeSpecular( dir, amount )

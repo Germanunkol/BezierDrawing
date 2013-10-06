@@ -51,7 +51,13 @@ function Shape:resetImage()
 	self.shader:send( "Resolution", {x, y} )
 	
 	-- flush thread messages:
-	floodFillThread:get( self.shapeID .. "(done)")	
+	floodFillThread:get( self.shapeID .. "(done)")
+	
+	if self.materialName:find("interior") then
+		self.shader:send( "AmbientColor", {1.0,1.0,1.0,0.9} )
+	else
+		self.shader:send( "AmbientColor", {1.0,1.0,1.0,0.4} )
+	end
 end
 
 function interpolate( P1, P2, amount )
@@ -601,15 +607,17 @@ function Shape:finishFill( img, nm, sm )
 	--love.graphics.setColor( 255,255,255,255 )
 	--love.graphics.draw( nm, 0, 0 )
 	love.graphics.setColor( self.outCol.r, self.outCol.g, self.outCol.b, self.outCol.a )
-
-	local a,b,c,d
-	for k,curve in pairs( self.curves ) do
-		for i = 1,#curve.points-1 do
-			a = curve.points[i].x - self.boundingBox.minX + IMG_PADDING
-			b = curve.points[i].y - self.boundingBox.minY + IMG_PADDING
-			c = curve.points[i+1].x - self.boundingBox.minX + IMG_PADDING
-			d = curve.points[i+1].y - self.boundingBox.minY + IMG_PADDING
-			love.graphics.line( a, b, c, d )
+	
+	if not self.materialName:find("interior") then
+		local a,b,c,d
+		for k,curve in pairs( self.curves ) do
+			for i = 1,#curve.points-1 do
+				a = curve.points[i].x - self.boundingBox.minX + IMG_PADDING
+				b = curve.points[i].y - self.boundingBox.minY + IMG_PADDING
+				c = curve.points[i+1].x - self.boundingBox.minX + IMG_PADDING
+				d = curve.points[i+1].y - self.boundingBox.minY + IMG_PADDING
+				love.graphics.line( a, b, c, d )
+			end
 		end
 	end
 	love.graphics.setCanvas()
@@ -805,12 +813,12 @@ function Shape:__tostring()
 		self.curves[i].cPoints[1].hasBeenSaved = false
 		self.curves[i].cPoints[4].hasBeenSaved = false
 	end
-	local str = "\nShape: " .. self.shapeID .. "\n"
-	str = str .. "\tmaterial: " .. self.materialName .. "\n"
-	str = str .. "\tclosed: " .. (self.closed and tostring(self.closed) or "false") .. "\n"
+	local str = "\tShape: " .. self.shapeID .. "\n"
+	str = str .. "\t\tmaterial: " .. self.materialName .. "\n"
+	str = str .. "\t\tclosed: " .. (self.closed and tostring(self.closed) or "false") .. "\n"
 	if self.boundingBox then
-		str = str .. "\tx: " .. self.boundingBox.minX .. "\n"
-		str = str .. "\ty: " .. self.boundingBox.minY .. "\n"
+		str = str .. "\t\tx: " .. self.boundingBox.minX .. "\n"
+		str = str .. "\t\ty: " .. self.boundingBox.minY .. "\n"
 	end
 
 	local corner = self.corners[1]
@@ -819,20 +827,20 @@ function Shape:__tostring()
 			c = corner.bezierNext
 			if not c then break end
 			if not c.cPoints[1].hasBeenSaved then
-				str = str .. "\t" .. tostring(c.cPoints[1]) .. "\n"
+				str = str .. "\t\t" .. tostring(c.cPoints[1]) .. "\n"
 				c.cPoints[1].hasBeenSaved = true
 			end
-			str = str .. "\t" .. tostring(c.cPoints[2]) .. "\n"
-			str = str .. "\t" .. tostring(c.cPoints[3]) .. "\n"
+			str = str .. "\t\t" .. tostring(c.cPoints[2]) .. "\n"
+			str = str .. "\t\t" .. tostring(c.cPoints[3]) .. "\n"
 			if not c.cPoints[4].hasBeenSaved then
-				str = str .. "\t" .. tostring(c.cPoints[4]) .. "\n"
+				str = str .. "\t\t" .. tostring(c.cPoints[4]) .. "\n"
 				c.cPoints[4].hasBeenSaved = true
 			end
 			corner = corner.next
 		until corner == self.corners[1]
 	end
 	
-	str = str .. "endShape\n"
+	str = str .. "\tendShape\n"
 	
 	return str
 end

@@ -34,18 +34,34 @@ function love.load()
 end
 
 function displayHeader( x, y, headerText )
-	y = y + 10
-	love.graphics.setColor(100,160,255, 255)
-	love.graphics.print(headerText, x, y)
-	return y + love.graphics.getFont():getHeight()
+	if x > 0 then
+		y = y + 10
+		love.graphics.setColor(100,160,255, 255)
+		love.graphics.print(headerText, x, y)
+		return y + love.graphics.getFont():getHeight()
+	else
+		x = love.graphics.getWidth() - love.graphics.getFont():getWidth(headerText) + x -5
+		love.graphics.setColor(100,160,255, 255)
+		love.graphics.print(headerText, x, y)
+		return y + love.graphics.getFont():getHeight()
+	end
 end
 function displayKey( x, y, redText, whiteText )
-	x = x + 5
-	love.graphics.setColor(255,120,50, 255)
-	love.graphics.print(redText, x, y)
-	love.graphics.setColor(255,255,255, 255)
-	love.graphics.print(whiteText, x + 5 + love.graphics.getFont():getWidth(redText), y)
-	return y + love.graphics.getFont():getHeight()
+	if x > 0 then
+		x = x + 5
+		love.graphics.setColor(255,120,50, 255)
+		love.graphics.print(redText, x, y)
+		love.graphics.setColor(255,255,255, 255)
+		love.graphics.print(whiteText, x + 5 + love.graphics.getFont():getWidth(redText), y)
+		return y + love.graphics.getFont():getHeight()
+	else
+		x = love.graphics.getWidth() - love.graphics.getFont():getWidth(redText .. whiteText) + x -5
+		love.graphics.setColor(255,120,50, 255)
+		love.graphics.print(redText, x, y)
+		love.graphics.setColor(255,255,255, 255)
+		love.graphics.print(whiteText, x + 5 + love.graphics.getFont():getWidth(redText), y)
+		return y + love.graphics.getFont():getHeight()
+	end
 end
 function displayInfo( x, y, whiteText )
 	x = x + 5

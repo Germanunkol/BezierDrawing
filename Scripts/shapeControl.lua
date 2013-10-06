@@ -20,13 +20,7 @@ function ShapeControl:initialize( gridSize, canvasWidth, canvasHeight, designNam
 	self.canvasWidth = canvasWidth
 	self.canvasHeight = canvasHeight
 	
-	self.layers = {
-		[1] = {name = "exterior"},
-		[2] = {name = "interior lower"},
-		[3] = {name = "interior upper"},
-	}
-	
-	self.shapes = self.layers[1]
+	self:resetShapes()
 	
 	self.selectedShape = nil
 	self.editedShape = nil
@@ -50,6 +44,16 @@ function ShapeControl:initialize( gridSize, canvasWidth, canvasHeight, designNam
 	self:load()
 	
 	love.filesystem.mkdir("Designs")
+end
+
+function ShapeControl:resetShapes()
+	self.layers = {
+		[1] = {name = "exterior"},
+		[2] = {name = "interior lower"},
+		[3] = {name = "interior upper"},
+	}
+	
+	self.shapes = self.layers[1]
 end
 
 function ShapeControl:getSelectedShape()
@@ -97,17 +101,34 @@ function ShapeControl:getHitShape( mX, mY )
 	end
 end
 
-function ShapeControl:cycleLayers()
-	for k = 1, #self.layers do
-		if self.shapes == self.layers[k] then
-			if k == #self.layers then
-				self.shapes = self.layers[1]
-			else
-				self.shapes = self.layers[k+1]
+function ShapeControl:cycleLayers( num )
+	if num and self.layers[num] then -- set directly:
+		self.shapes = self.layers[num]
+	else -- cycle:
+		for k = 1, #self.layers do
+			if self.shapes == self.layers[k] then
+				if k == #self.layers then
+					self.shapes = self.layers[1]
+				else
+					self.shapes = self.layers[k+1]
+				end
+				break
 			end
-			return
 		end
 	end
+	
+	
+	if self.editedShape then
+		self.editedShape:setEditing( false )
+		self.editedShape = nil
+	end
+	if self.selectedShape then
+		self.selectedShape:setSelected( false )
+		self.selectedShape = nil
+	end
+	
+	-- select a material that's valid for the layer:
+	self:selectMaterial()
 end
 
 function ShapeControl:click( mX, mY, button, zoom )
@@ -339,6 +360,8 @@ function ShapeControl:keypressed( key, unicode )
 		self:load()
 	elseif key == "i" then
 		self:cycleLayers()
+	elseif key == "1" or key == "2" or key == "3" then
+		self:cycleLayers(tonumber(key))
 	end
 	
 	if key == "escape" then
@@ -351,9 +374,14 @@ end
 
 
 function ShapeControl:draw()
-	for k = 1,#self.shapes do
-		if self.editedShape ~= self.shapes[k] then		-- draw edited shape last!
-			self.shapes[k]:draw( self.editedShape )
+	for i = 1,#self.layers do
+		for k = 1, #self.layers[i] do
+			if self.editedShape ~= self.layers[i][k] then		-- draw edited shape last!
+				self.layers[i][k]:draw( self.editedShape )
+			end
+		end
+		if self.layers[i] == self.shapes then
+			break
 		end
 	end
 	if self.editedShape then
@@ -367,13 +395,23 @@ end
 local mouseX, mouseY = 0,0
 function ShapeControl:drawUI()
 	--if self.selectedShape then
+	if self.shapes == self.layers[1] then	-- exterior:
 		for k = 1,#self.materials do
+			if not self.materials[k].interior then
 			--self.materials[k].baseShape:moveTo( 0, 0 )
 					--self.selectedShape.boundingBox.maxX + 25,
 					--self.selectedShape.boundingBox.maxY - 20 - k*30)
 			--self.materials[k].baseShape:update()
-			self.materials[k].currentShape:draw( )
+				self.materials[k].currentShape:draw( )
+			end
 		end
+	else
+		for k = 1,#self.materials do
+			if self.materials[k].interior then
+				self.materials[k].currentShape:draw( )
+			end
+		end
+	end
 	--end
 	love.graphics.setColor(255,120,50, 255)
 	local str = "(" .. mouseX/self.gridSize .. "," .. mouseY/self.gridSize .. ")"
@@ -381,15 +419,15 @@ function ShapeControl:drawUI()
 							love.graphics.getHeight() - 30)
 	love.graphics.setColor(255,255,255,255)
 	
-	local x, y, str
+	local x, y, str = -10, 10
 	for k = 1, #self.layers do
-		if self.shapes == self.layers[k] then	
-			love.graphics.setColor(100,160,255, 255)
+		if self.shapes == self.layers[k] then
+			y = displayHeader( x, y, k .. " " .. self.layers[k].name)
 		else
-			love.graphics.setColor(255,120,50, 255)
+			y = displayKey( x, y, k, self.layers[k].name )
 		end
-		x = love.graphics.getWidth() - 10 - love.graphics.getFont():getWidth(self.layers[k].name)
-		love.graphics.print( self.layers[k].name, x, 10 + k*love.graphics.getFont():getHeight())
+		--x = love.graphics.getWidth() - 10 - love.graphics.getFont():getWidth(self.layers[k].name)
+		--love.graphics.print( self.layers[k].name, x, 10 + k*love.graphics.getFont():getHeight())
 	end
 end
 
@@ -401,32 +439,34 @@ function ShapeControl:update( mX, mY, dt )
 		self:renderMaterials()
 	end
 
-	for k = 1, #self.shapes do
-		if self.editedShape and self.editedShape == self.shapes[k] then
-			if self.editedShape:isMoving() then
-				if self.snapToCPoints then
-					-- check if other points are close by:
-					local hit = self.editedShape:checkHit( mX, mY )
+	for i = 1, #self.layers do
+		for k = 1, #self.layers[i] do
+			if self.editedShape and self.editedShape == self.layers[i][k] then
+				if self.editedShape:isMoving() then
+					if self.snapToCPoints then
+						-- check if other points are close by:
+						local hit = self.editedShape:checkHit( mX, mY )
 				
-					if hit then
-						mX = hit.x
-						mY = hit.y
+						if hit then
+							mX = hit.x
+							mY = hit.y
+						else
+							if self.snapToGrid then
+								mX = math.floor((mX+self.gridSize/2)/self.gridSize)*self.gridSize
+								mY = math.floor((mY+self.gridSize/2)/self.gridSize)*self.gridSize
+							end
+						end
 					else
 						if self.snapToGrid then
 							mX = math.floor((mX+self.gridSize/2)/self.gridSize)*self.gridSize
 							mY = math.floor((mY+self.gridSize/2)/self.gridSize)*self.gridSize
 						end
 					end
-				else
-					if self.snapToGrid then
-						mX = math.floor((mX+self.gridSize/2)/self.gridSize)*self.gridSize
-						mY = math.floor((mY+self.gridSize/2)/self.gridSize)*self.gridSize
-					end
+					self.editedShape:movePoint( mX, mY )
 				end
-				self.editedShape:movePoint( mX, mY )
 			end
+			self.layers[i][k]:update( dt )
 		end
-		self.shapes[k]:update( dt )
 	end
 	
 	if self.draggedShape then
@@ -457,6 +497,25 @@ end
 function ShapeControl:getSnapToCPoints( ) return self.snapToCPoints end
 function ShapeControl:getSnapToGrid( ) return self.snapToGrid end
 
+function ShapeControl:selectMaterial()
+	if self.shapes == self.layers[1] then	-- exterior
+		for	k = 1,#self.materials do
+			if not self.materials[k].interior then
+				self.materials[k].currentShape = self.materials[k].selShape
+				self.currentMaterial = self.materials[k].name
+				break
+			end
+		end
+	else
+		for	k = 1,#self.materials do
+			if self.materials[k].interior then
+				self.materials[k].currentShape = self.materials[k].selShape
+				self.currentMaterial = self.materials[k].name
+				break
+			end
+		end
+	end
+end
 
 function ShapeControl:loadMaterials()
 	print("Loading materials:")
@@ -465,15 +524,31 @@ function ShapeControl:loadMaterials()
 	for k, name in pairs(files) do
 		print(k, name, name:find(".lua"), #name)
 		if name:find(".lua") == #name-3 then
+			local interior = false
+			if name:find("interior") then
+				interior = true
+			end
 			self.materials[#self.materials+1] = {
-				name = name:sub( 1, #name-4 )
+				name = name:sub( 1, #name-4 ),
+				interior = interior
 			}
 			print("\t" , self.materials[#self.materials].name)
 		end
 	end
 	
+	local yExterior = 0
+	local yInterior = 0
+	local yCurrent = 0
+	
 	for k, mat in pairs(self.materials) do
-		local x, y = love.graphics.getWidth(), love.graphics.getHeight() - 30 - k*35
+		if mat.interior then
+			yInterior = yInterior + 1
+			yCurrent = yInterior
+		else
+			yExterior = yExterior + 1
+			yCurrent = yExterior
+		end
+		local x, y = love.graphics.getWidth(), love.graphics.getHeight() - 30 - yCurrent*35
 		
 		-- create a button for "not selected":
 		mat.baseShape = Shape:new( mat.name )
@@ -500,13 +575,11 @@ function ShapeControl:loadMaterials()
 		mat.selShape:update()
 		-- self.shapes[#self.shapes+1] = mat.baseShape
 		
-		if k == #self.materials then	-- set one of the materials to selected:
-			mat.currentShape = mat.selShape
-			self.currentMaterial = mat.name
-		else
-			mat.currentShape = mat.baseShape
-		end
+		mat.currentShape = mat.baseShape
 	end
+	
+	-- set a non-interior shape to "Selected":
+	self:selectMaterial()
 end
 
 function ShapeControl:renderMaterials()
@@ -533,17 +606,38 @@ end
 
 function ShapeControl:uiHit()
 	x, y = love.mouse.getPosition()
-	for k, m in pairs(self.materials) do
-		if m.currentShape:pointInsideBoundings( x, y ) then
-			for i,m2 in pairs(self.materials) do	-- set all others to unselected
-				m2.currentShape = m2.baseShape
+	
+	if self.shapes == self.layers[1] then -- exterior
+		for k, m in pairs(self.materials) do
+			if not m.interior then
+				if m.currentShape:pointInsideBoundings( x, y ) then
+					for i,m2 in pairs(self.materials) do	-- set all others to unselected
+						m2.currentShape = m2.baseShape
+					end
+					m.currentShape = m.selShape
+					self.currentMaterial = m.name
+					if self.selectedShape then
+						self.selectedShape:setMaterial( m.name )
+					end
+					return true
+				end
 			end
-			m.currentShape = m.selShape
-			self.currentMaterial = m.name
-			if self.selectedShape then
-				self.selectedShape:setMaterial( m.name )
+		end
+	else	-- interior
+		for k, m in pairs(self.materials) do
+			if m.interior then
+				if m.currentShape:pointInsideBoundings( x, y ) then
+					for i,m2 in pairs(self.materials) do	-- set all others to unselected
+						m2.currentShape = m2.baseShape
+					end
+					m.currentShape = m.selShape
+					self.currentMaterial = m.name
+					if self.selectedShape then
+						self.selectedShape:setMaterial( m.name )
+					end
+					return true
+				end
 			end
-			return true
 		end
 	end
 	return false
@@ -559,22 +653,29 @@ function ShapeControl:save()
 		local content = fileHeader
 		
 		-- go through the shapes in order of layer and append them:
-		for k = 1, #self.shapes do
-			content = content .. tostring(self.shapes[k])
+		content = content .. "Layer: exterior\n"
+		for k = 1, #self.layers[1] do
+			content = content .. tostring(self.layers[1][k])
 		end
+		content = content .. "endLayer\n"
+		content = content .. "Layer: interior1\n"
+		for k = 1, #self.layers[2] do
+			content = content .. tostring(self.layers[2][k])
+		end
+		content = content .. "endLayer\n"
+		content = content .. "Layer: interior2\n"
+		for k = 1, #self.layers[3] do
+			content = content .. tostring(self.layers[3][k])
+		end
+		content = content .. "endLayer\n"
+		
 		love.filesystem.write( "Designs/" .. self.designName .. ".sav", content )
 	end
 end
 
 function ShapeControl:load()
 	
-	self.layers = {
-		[1] = {name = "exterior"},
-		[2] = {name = "interior lower"},
-		[3] = {name = "interior upper"},
-	}
-	
-	self.shapes = self.layers[1]
+	self:resetShapes()
 	
 	self.selectedShape = nil
 	self.editedShape = nil
@@ -585,16 +686,20 @@ function ShapeControl:load()
 	if self.designName then
 		local ok, content = pcall(love.filesystem.read, "Designs/" .. self.designName .. ".sav" )
 		if not ok then print("\tDidn't find " .. self.designName .. ".sav" ) end
-		while ok and content and #content > 0 do
-			
-			s, e = string.find(content, "Shape:.-endShape")
-			if s and e then
-				print("Found shape:", content:sub(s,e))
-				self.shapes[#self.shapes+1] = ShapeControl:shapeFromString( content:sub(s,e) )
-				content = content:sub(e+1, #content)
-			else
+		
+		local layer = 1
+		for str in content:gmatch("Layer:(.-)endLayer\n") do
+			self.shapes = self.layers[layer]
+			if not self.shapes then
+				print("\tERROR: invalid layer in file!")
+				self:resetShapes()
 				break
 			end
+			for s in str:gmatch("(Shape:.-endShape)") do
+				print("Found shape:", s)
+				self.shapes[#self.shapes+1] = ShapeControl:shapeFromString( s )
+			end
+			layer = layer+1
 		end
 	end
 end
@@ -613,7 +718,7 @@ function ShapeControl:shapeFromString( str )
 	-- get the actual values from the string:
 	local key, value, pos, x, y
 	for k, line in lines(str) do
-		key, value = line:match("\t(.+): (.+)")
+		key, value = line:match("\t\t(.+): (.+)")
 		if key and value then
 			print("found:", key, value)
 			if key == "material" then
