@@ -867,7 +867,6 @@ function drawDiffuseMap( shape )
 						g = g or insCol.g
 						b = b or insCol.b
 						a = a or insCol.a
-					--print(r .. " " .. g .." " .. b .. " " .. dX .. " " .. dY)
 						shape.diffuseMap:setPixel( x, y, r, g, b, a )
 					end
 				end

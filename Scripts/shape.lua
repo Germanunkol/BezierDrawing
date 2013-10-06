@@ -317,14 +317,16 @@ function Shape:startDragging( x, y )
 end
 
 function Shape:stopDragging( x, y )
-	for k = 1, #self.curves do
-		for i = 1, #self.curves[k].cPoints do
-			self.curves[k].cPoints[i]:addOffset( self.offsetX, self.offsetY )
+	if self.offsetX and self.offsetY then
+		for k = 1, #self.curves do
+			for i = 1, #self.curves[k].cPoints do
+				self.curves[k].cPoints[i]:addOffset( self.offsetX, self.offsetY )
+			end
 		end
-	end
-	for k = 1, #self.curves do
-		for i = 1, #self.curves[k].cPoints do
-			self.curves[k].cPoints[i]:removeOffsetLock()
+		for k = 1, #self.curves do
+			for i = 1, #self.curves[k].cPoints do
+				self.curves[k].cPoints[i]:removeOffsetLock()
+			end
 		end
 	end
 	self.dragged = false
@@ -840,7 +842,7 @@ function Shape:__tostring()
 		until corner == self.corners[1]
 	end
 	
-	str = str .. "\tendShape\n"
+	str = str .. "\tendShape\n\n"
 	
 	return str
 end

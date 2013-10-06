@@ -702,6 +702,15 @@ function ShapeControl:load()
 			layer = layer+1
 		end
 	end
+	
+	-- start with the layer selected that is highest in the hierarchy:
+	for k = #self.layers, 1, -1 do
+		if #self.layers[k] > 0 or k == 1 then
+			self.shapes = self.layers[k]
+			break
+		end
+	end
+	
 end
 
 function ShapeControl:shapeFromString( str )

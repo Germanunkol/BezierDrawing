@@ -10,14 +10,17 @@ local function edgeNormal( dir, amount )
 end
 
 function edgeDiffuse( dir, amount )
-	if amount <= 0.5 and amount >= 0.2 then
-		return 50,50,50,255
+	if amount <= 0.5 and amount >= 0.3 then
+		return 20,20,20,255
 	end
 	return 150,150,150,230
 end
 
 function edgeSpecular( dir, amount )
-	return 100,100,80,100
+	if amount <= 0.5 then
+		return 30,30,10,255
+	end
+	return 100, 100, 80, 100
 end
 
 local function patternDiffuse( dx, dy )

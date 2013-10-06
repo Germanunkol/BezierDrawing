@@ -21,7 +21,7 @@ function Point:move( x, y )
 	end
 end
 function Point:addOffset( x, y )
-	if not self.offsetLock then		-- only allow one offset!
+	if not self.offsetLock and x and y then		-- only allow one offset!
 		self.x = self.x + x
 		self.y = self.y + y
 	
