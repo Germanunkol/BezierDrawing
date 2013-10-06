@@ -70,39 +70,44 @@ function displayInfo( x, y, whiteText )
 	return y + love.graphics.getFont():getHeight()
 end
 
-function drawGrid()
+function drawGrid( res )
 	cam:set()
-
-	love.graphics.setLineWidth( 2*math.max(1/cam:getZoom(),1) )
-	love.graphics.setColor(255,255,255,20)
-	for k = 0, canvasWidth,5 do
-		love.graphics.line(k*gridSize, 0, k*gridSize, canvasHeight*gridSize)
-	end
-	for k = 0, canvasHeight,5 do
-		love.graphics.line(0, k*gridSize, canvasWidth*gridSize, k*gridSize)
-	end
-
-	cam:reset()
-end
-function drawGrid2()
-	cam:set()
-
+	
 	love.graphics.setLineWidth( math.max(1/cam:getZoom(),1) )
+	
 	love.graphics.setColor(255,255,255,20)
-	for k = 0, canvasWidth do
-		love.graphics.line(k*gridSize, 0, k*gridSize, canvasHeight*gridSize)
+	
+	-- convert screen size into world coordinates:
+	local x1,y1 = cam:worldPos( 0, 0 )
+	local x2,y2 = cam:worldPos( love.graphics.getWidth(), love.graphics.getHeight() )
+	local startX = math.max( x1, 0 )
+	local startY = math.max( y1, 0 )
+	local endX = math.min( x2, canvasWidth*gridSize )
+	local endY = math.min( y2, canvasHeight*gridSize )
+	
+	startX = startX - startX % (gridSize*res)
+	startY = startY - startY % (gridSize*res)
+	
+	for k = startX, endX, res*gridSize do
+		love.graphics.line( k, startY, k, endY )
 	end
-	for k = 0, canvasHeight do
-		love.graphics.line(0, k*gridSize, canvasWidth*gridSize, k*gridSize)
+	for k = startY, endY, res*gridSize do
+		love.graphics.line( startX, k, endX, k )
 	end
-
+	
 	cam:reset()
 end
+
 
 function love.draw()
 
-	drawGrid()
-	drawGrid2()
+	if cam:getZoom() == 2 then
+		drawGrid( 0.5 )
+		drawGrid( 1 )
+	else
+		drawGrid( 5 )
+		drawGrid( 1 )
+	end
 	
 	cam:set()
 	shapeControl:draw()
