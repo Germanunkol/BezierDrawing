@@ -374,14 +374,22 @@ end
 
 
 function ShapeControl:draw()
+
+	local reachedCurrentLayer = false
 	for i = 1,#self.layers do
 		for k = 1, #self.layers[i] do
-			if self.editedShape ~= self.layers[i][k] then		-- draw edited shape last!
-				self.layers[i][k]:draw( self.editedShape )
+			if self.layers[i] == self.shapes then
+				if self.editedShape ~= self.layers[i][k] then		-- draw edited shape last!
+					self.layers[i][k]:draw( self.editedShape )
+				end
+				reachedCurrentLayer = true
+			else
+				if reachedCurrentLayer then
+					self.layers[i][k]:draw( true )	-- draw layers above current in wireframe mode
+				else
+					self.layers[i][k]:draw( false )
+				end
 			end
-		end
-		if self.layers[i] == self.shapes then
-			break
 		end
 	end
 	if self.editedShape then
@@ -498,6 +506,9 @@ function ShapeControl:getSnapToCPoints( ) return self.snapToCPoints end
 function ShapeControl:getSnapToGrid( ) return self.snapToGrid end
 
 function ShapeControl:selectMaterial()
+	for	k = 1,#self.materials do
+		self.materials[k].currentShape = self.materials[k].baseShape
+	end
 	if self.shapes == self.layers[1] then	-- exterior
 		for	k = 1,#self.materials do
 			if not self.materials[k].interior then
@@ -696,7 +707,6 @@ function ShapeControl:load()
 				break
 			end
 			for s in str:gmatch("(Shape:.-endShape)") do
-				print("Found shape:", s)
 				self.shapes[#self.shapes+1] = ShapeControl:shapeFromString( s )
 			end
 			layer = layer+1
@@ -710,6 +720,8 @@ function ShapeControl:load()
 			break
 		end
 	end
+
+	self:selectMaterial()
 	
 end
 
@@ -729,7 +741,6 @@ function ShapeControl:shapeFromString( str )
 	for k, line in lines(str) do
 		key, value = line:match("\t\t(.+): (.+)")
 		if key and value then
-			print("found:", key, value)
 			if key == "material" then
 				tmpShape.materialName = value
 			elseif key == "closed" then
@@ -741,9 +752,8 @@ function ShapeControl:shapeFromString( str )
 			elseif key == "y" then
 				tmpShape.y = tonumber(value)
 			elseif key == "Point" then
-				x, y = value:match("([%d\.]+), ([%d\.]+)")
-				print("\t\t", x, y)
-				tmpShape.points[#tmpShape.points+1] = {x=x, y=y}
+				x, y = value:match("([-?%d\.]+), ([-?%d\.]+)")
+				tmpShape.points[#tmpShape.points+1] = {x=tonumber(x), y=tonumber(y)}
 			end
 		end
 	end
@@ -751,11 +761,6 @@ function ShapeControl:shapeFromString( str )
 
 	local shape = Shape:new( tmpShape.materialName )
 
-	for k = 1, #tmpShape.points do
-		--tmpShape.points[k].x = tmpShape.points[k].x + tmpShape.x
-		--tmpShape.points[k].y = tmpShape.points[k].y + tmpShape.y
-	end
-	
 	for k = 1, #tmpShape.points, 3 do
 		shape:addCorner( tmpShape.points[k].x, tmpShape.points[k].y )
 	end
@@ -776,6 +781,9 @@ function ShapeControl:shapeFromString( str )
 				corner.bezierNext.cPoints[2].x = tmpShape.points[k2+1].x
 				corner.bezierNext.cPoints[2].y = tmpShape.points[k2+1].y
 				corner.bezierNext.cPoints[2].hasBeenMoved = true
+			else
+				corner.bezierNext.cPoints[2].hasBeenMoved = false
+				
 			end
 			if corner.bezierNext.cPoints[3].x ~= tmpShape.points[k2+2].x or
 				corner.bezierNext.cPoints[3].y ~= tmpShape.points[k2+2].y then
@@ -783,6 +791,8 @@ function ShapeControl:shapeFromString( str )
 				corner.bezierNext.cPoints[3].x = tmpShape.points[k2+2].x
 				corner.bezierNext.cPoints[3].y = tmpShape.points[k2+2].y
 				corner.bezierNext.cPoints[3].hasBeenMoved = true
+			else
+				corner.bezierNext.cPoints[3].hasBeenMoved = false
 			end
 			corner.bezierNext:setModified()
 		end
@@ -795,3 +805,21 @@ function ShapeControl:shapeFromString( str )
 	return shape
 end
 -------------------------------------------
+
+function ShapeControl:saveImages( )
+	local bb = {}
+	local tmpCanvas
+	
+	self.boundingBox.minX = math.huge
+	self.boundingBox.minY = math.huge
+	self.boundingBox.maxX = -math.huge
+	self.boundingBox.maxY = -math.huge
+	local boundings
+	for k = 1, #self.curves do
+		boundings = self.curves[k]:getBoundingBox()
+		self.boundingBox.minX = math.min( boundings.minX, self.boundingBox.minX )
+		self.boundingBox.minY = math.min( boundings.minY, self.boundingBox.minY )
+		self.boundingBox.maxX = math.max( boundings.maxX, self.boundingBox.maxX )
+		self.boundingBox.maxY = math.max( boundings.maxY, self.boundingBox.maxY )
+	end
+end
