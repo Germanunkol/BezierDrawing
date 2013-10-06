@@ -6,19 +6,7 @@ local canvasWidth = 50
 local canvasHeight = 50
 local shapeControl
 
-txt = [[
-this is
-a multiline
-text with lots of 
-line breaks
-and stuff...
-]]
-
 function love.load()
-
-	for k, v in lines(txt) do
-		print(k, v)
-	end
 
 	assert(love.graphics.isSupported("canvas"), "Your graphics card does not support canvases, sorry!")
 	assert(love.graphics.isSupported("pixeleffect"), "Your graphics card does not support shaders, sorry!")
@@ -176,9 +164,11 @@ function love.mousepressed( x,y,button )
 	end
 	if button == "wu" then
 		cam:zoomIn()
+		shapeControl:setSnapSize()
 	end
 	if button == "wd" then
 		cam:zoomOut()
+		shapeControl:setSnapSize()
 	end
 	if button == "l" or button == "r" then
 		x, y = cam:worldPos(x, y)

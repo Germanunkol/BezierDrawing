@@ -17,6 +17,7 @@ https://github.com/Germanunkol/BezierDrawing
 
 function ShapeControl:initialize( gridSize, canvasWidth, canvasHeight, designName )
 	self.gridSize = gridSize or 10
+	self.snapSize = self.gridSize
 	self.canvasWidth = canvasWidth
 	self.canvasHeight = canvasHeight
 	
@@ -161,8 +162,8 @@ function ShapeControl:click( mX, mY, button, zoom )
 						self.editedShape:splitCurve( hitLine, dist )
 					elseif not self.editedShape.closed then
 						if self.snapToGrid then
-							mX = math.floor((mX+self.gridSize/2)/self.gridSize)*self.gridSize
-							mY = math.floor((mY+self.gridSize/2)/self.gridSize)*self.gridSize
+							mX = math.floor((mX+self.snapSize/2)/self.snapSize)*self.snapSize
+							mY = math.floor((mY+self.snapSize/2)/self.snapSize)*self.snapSize
 						end
 						self.editedShape:addCorner( mX, mY )
 					end
@@ -362,6 +363,8 @@ function ShapeControl:keypressed( key, unicode )
 		self:cycleLayers()
 	elseif key == "1" or key == "2" or key == "3" then
 		self:cycleLayers(tonumber(key))
+	elseif key == "o" then
+		self:saveImages()
 	end
 	
 	if key == "escape" then
@@ -460,14 +463,14 @@ function ShapeControl:update( mX, mY, dt )
 							mY = hit.y
 						else
 							if self.snapToGrid then
-								mX = math.floor((mX+self.gridSize/2)/self.gridSize)*self.gridSize
-								mY = math.floor((mY+self.gridSize/2)/self.gridSize)*self.gridSize
+								mX = math.floor((mX+self.snapSize/2)/self.snapSize)*self.snapSize
+								mY = math.floor((mY+self.snapSize/2)/self.snapSize)*self.snapSize
 							end
 						end
 					else
 						if self.snapToGrid then
-							mX = math.floor((mX+self.gridSize/2)/self.gridSize)*self.gridSize
-							mY = math.floor((mY+self.gridSize/2)/self.gridSize)*self.gridSize
+							mX = math.floor((mX+self.snapSize/2)/self.snapSize)*self.snapSize
+							mY = math.floor((mY+self.snapSize/2)/self.snapSize)*self.snapSize
 						end
 					end
 					self.editedShape:movePoint( mX, mY )
@@ -480,9 +483,9 @@ function ShapeControl:update( mX, mY, dt )
 	if self.draggedShape then
 		if self.snapToGrid then
 			local dX, dY = mX - self.draggedShape.startDragX, mY - self.draggedShape.startDragY
-			mX = math.floor((dX+self.gridSize/2)/self.gridSize)*self.gridSize
+			mX = math.floor((dX+self.snapSize/2)/self.snapSize)*self.snapSize
 					+ self.draggedShape.startDragX
-			mY = math.floor((dY+self.gridSize/2)/self.gridSize)*self.gridSize
+			mY = math.floor((dY+self.snapSize/2)/self.snapSize)*self.snapSize
 					+ self.draggedShape.startDragY
 		end
 		self.draggedShape:drag( mX, mY )
@@ -502,6 +505,15 @@ end
 function ShapeControl:setSnapToGrid( bool )
 	self.snapToGrid = bool
 end
+
+function ShapeControl:setSnapSize()
+	if cam:getZoom() == 2 then
+		self.snapSize = self.gridSize/2
+	else
+		self.snapSize = self.gridSize
+	end
+end
+
 function ShapeControl:getSnapToCPoints( ) return self.snapToCPoints end
 function ShapeControl:getSnapToGrid( ) return self.snapToGrid end
 
@@ -533,7 +545,6 @@ function ShapeControl:loadMaterials()
 	local files = love.filesystem.enumerate("Materials")
 	self.materials = {}
 	for k, name in pairs(files) do
-		print(k, name, name:find(".lua"), #name)
 		if name:find(".lua") == #name-3 then
 			local interior = false
 			if name:find("interior") then
@@ -808,18 +819,53 @@ end
 
 function ShapeControl:saveImages( )
 	local bb = {}
-	local tmpCanvas
-	
-	self.boundingBox.minX = math.huge
-	self.boundingBox.minY = math.huge
-	self.boundingBox.maxX = -math.huge
-	self.boundingBox.maxY = -math.huge
+	local canvasDiff, canvasNM, canvasSM
 	local boundings
-	for k = 1, #self.curves do
-		boundings = self.curves[k]:getBoundingBox()
-		self.boundingBox.minX = math.min( boundings.minX, self.boundingBox.minX )
-		self.boundingBox.minY = math.min( boundings.minY, self.boundingBox.minY )
-		self.boundingBox.maxX = math.max( boundings.maxX, self.boundingBox.maxX )
-		self.boundingBox.maxY = math.max( boundings.maxY, self.boundingBox.maxY )
+	local currentLayer
+	local filename
+	
+	
+	for k = 1, #self.layers do
+		currentLayer = self.layers[k]
+		if #currentLayer > 0 then	-- don't bother saving layer if it's empty!
+			bb.minX = math.huge
+			bb.minY = math.huge
+			bb.maxX = -math.huge
+			bb.maxY = -math.huge
+			for i = 1, #currentLayer do
+				boundings = currentLayer[i]:getBoundingBox()
+				bb.minX = math.min( boundings.minX, bb.minX )
+				bb.minY = math.min( boundings.minY, bb.minY )
+				bb.maxX = math.max( boundings.maxX, bb.maxX )
+				bb.maxY = math.max( boundings.maxY, bb.maxY )
+			end
+			
+			canvasDiff = love.graphics.newCanvas( bb.maxX - bb.minX,
+												bb.maxY - bb.minY)
+			canvasNM = love.graphics.newCanvas( bb.maxX - bb.minX,
+												bb.maxY - bb.minY)
+			canvasSM = love.graphics.newCanvas( bb.maxX - bb.minX,
+												bb.maxY - bb.minY)
+			love.graphics.push()
+			print("offset:", bb.minX, bb.minY)
+			love.graphics.translate( -bb.minX, -bb.minY )
+			for i = 1, #currentLayer do
+				love.graphics.setCanvas( canvasDiff )
+				love.graphics.setColor(255,255,255,255)
+				currentLayer[i]:drawPlain( "diffuse" )
+				love.graphics.setCanvas( canvasNM )
+				love.graphics.setColor(255,255,255,255)
+				currentLayer[i]:drawPlain( "normal" )
+				love.graphics.setCanvas( canvasSM )
+				love.graphics.setColor(255,255,255,255)
+				currentLayer[i]:drawPlain( "specular" )
+			end
+			love.graphics.pop()
+			love.graphics.setCanvas()
+			filename = "Designs/" .. self.designName .. "_" .. k .. "_"
+			canvasDiff:getImageData():encode( filename .. "d.png" )
+			canvasNM:getImageData():encode( filename .. "n.png" )
+			canvasSM:getImageData():encode( filename .. "s.png" )
+		end
 	end
 end

@@ -15,8 +15,8 @@ local function edgeSpecular( dir, amount )
 end
 
 local function patternSpecular( dir, amount )
-	local r = math.random(50)
-	return 155-r,200-r,200-r
+	local r = math.random(30)
+	return 185-r,220-r,220-r
 end
 
 local mat = {

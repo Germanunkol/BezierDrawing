@@ -56,7 +56,7 @@ function Shape:resetImage()
 	if self.materialName:find("interior") then
 		self.shader:send( "AmbientColor", {1.0,1.0,1.0,0.9} )
 	else
-		self.shader:send( "AmbientColor", {1.0,1.0,1.0,0.4} )
+		self.shader:send( "AmbientColor", {1.0,1.0,1.0,0.5} )
 	end
 end
 
@@ -354,12 +354,12 @@ function Shape:draw( editMode )
 		love.graphics.translate( self.offsetX, self.offsetY )
 	end
 	
-	if self.image.img and not self.editing and self.boundingBox and not editMode then
+	if self.image.diffuseMap and not self.editing and self.boundingBox and not editMode then
 	
 		local x, y = love.mouse.getPosition()
 		self.shader:send( "LightPos", {x, (love.graphics.getHeight() - y), .04} )
-		self.shader:send("nm", self.image.nm)
-		self.shader:send("sm", self.image.sm)
+		self.shader:send("nm", self.image.normalMap)
+		self.shader:send("sm", self.image.specularMap)
 	
 		--if self.selected then
 		--	love.graphics.setColor(255,255,255,200)
@@ -367,7 +367,7 @@ function Shape:draw( editMode )
 			love.graphics.setColor(255,255,255,255)
 		--end
 		love.graphics.setPixelEffect(self.shader)
-		love.graphics.draw( self.image.img,
+		love.graphics.draw( self.image.diffuseMap,
 							self.boundingBox.minX - IMG_PADDING,
 							self.boundingBox.minY - IMG_PADDING )
 		--love.graphics.draw( self.image.nm, self.boundingBox.minX-5, self.boundingBox.minY-5 )
@@ -596,8 +596,8 @@ function Shape:finishFill( img, nm, sm )
 
 	img = love.graphics.newImage( img )
 	
-	self.image.nm = love.graphics.newImage( nm )
-	self.image.sm = love.graphics.newImage( sm )
+	self.image.normalMap = love.graphics.newImage( nm )
+	self.image.specularMap = love.graphics.newImage( sm )
 	
 	--[[love.graphics.setColor( self.material.col.r,
 							self.material.col.g,
@@ -625,7 +625,7 @@ function Shape:finishFill( img, nm, sm )
 	love.graphics.setCanvas()
 	
 
-	self.image.img = love.graphics.newImage( self.image.canvas:getImageData() )
+	self.image.diffuseMap = love.graphics.newImage( self.image.canvas:getImageData() )
 	self.image.rendering = false
 	self.image.finished = true
 end
@@ -643,6 +643,11 @@ function Shape:calcBoundingBox()
 		self.boundingBox.maxX = math.max( boundings.maxX, self.boundingBox.maxX )
 		self.boundingBox.maxY = math.max( boundings.maxY, self.boundingBox.maxY )
 	end
+end
+
+function Shape:getBoundingBox()
+	self:calcBoundingBox()
+	return self.boundingBox
 end
 
 function Shape:update( dt )
@@ -845,4 +850,30 @@ function Shape:__tostring()
 	str = str .. "\tendShape\n\n"
 	
 	return str
+end
+
+function Shape:drawPlain( map )
+	if map == "diffuse" then
+		if self.image.diffuseMap then
+			love.graphics.draw( self.image.diffuseMap,
+							self.boundingBox.minX - IMG_PADDING,
+							self.boundingBox.minY - IMG_PADDING )
+		else
+			for k,c in pairs( self.curves ) do
+				c:draw( false, false )
+			end
+		end
+	elseif map == "normal" then
+		if self.image.normalMap then
+			love.graphics.draw( self.image.normalMap,
+							self.boundingBox.minX - IMG_PADDING,
+							self.boundingBox.minY - IMG_PADDING )
+		end
+	elseif map == "specular" then
+		if self.image.specularMap then
+			love.graphics.draw( self.image.specularMap,
+							self.boundingBox.minX - IMG_PADDING,
+							self.boundingBox.minY - IMG_PADDING )
+		end
+	end
 end
