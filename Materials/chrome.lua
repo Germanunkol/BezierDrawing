@@ -23,10 +23,10 @@ local mat = {
 	-- fallback color: will only be used if no "pattern" function is specified:
 	colDiffuse = { r = 255, g=255, b=255, a=255 },
 	-- specular color will be used for the full shape unless patternSpecular is defined:
-	colSpecular = { r = 155, g=200, b=200 },
+	--colSpecular = { r = 155, g=200, b=200 },
 	
 	-- profile:
-	edgeDepth = 10,		-- how far each edge reaches into the shape
+	edgeDepth = 4,		-- how far each edge reaches into the shape
 	edgeNormal = edgeNormal,
 	edgeSpecular = edgeSpecular,
 	

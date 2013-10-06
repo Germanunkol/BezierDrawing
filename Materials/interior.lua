@@ -1,8 +1,8 @@
 -- material to be used in vessel construction
 
 local function edgeNormal( dir, amount )
-	if amount >= 0.5 then
-		return -dir.x, -dir.y, 0.1
+	if amount >= 0.2 then
+		return -dir.x, -dir.y, 0.01
 	else
 		return 0,0,1
 	end
@@ -10,14 +10,14 @@ local function edgeNormal( dir, amount )
 end
 
 function edgeDiffuse( dir, amount )
-	if amount <= 0.5 and amount >= 0.3 then
+	if amount <= 0.3 then
 		return 20,20,20,255
 	end
 	return 150,150,150,230
 end
 
 function edgeSpecular( dir, amount )
-	if amount <= 0.5 then
+	if amount <= 0.3 then
 		return 30,30,10,255
 	end
 	return 100, 100, 80, 100
@@ -66,7 +66,7 @@ local mat = {
 	colSpecular = { r = 100, g=100, b=100 },
 	
 	-- profile:
-	edgeDepth = 12,		-- how far each edge reaches into the shape
+	edgeDepth = 9,		-- how far each edge reaches into the shape
 	edgeNormal = edgeNormal,
 	edgeDiffuse = edgeDiffuse,
 	edgeSpecular = edgeSpecular,
