@@ -382,13 +382,21 @@ function Shape:draw( editMode )
 			--end
 		--end
 		love.graphics.setPixelEffect()
+		
 	elseif not self.image.tempImage then
-		for k,c in pairs( self.curves ) do
-			c:draw( self.editing, self.closed )
-		end
-		if self.editing then
-			for k,c in pairs( self.corners ) do
-				c:draw()
+		if self.image.wireframe then
+			love.graphics.setColor(200,200,200,100)
+			love.graphics.draw( self.image.wireframe,
+				self.boundingBox.minX - IMG_PADDING,
+				self.boundingBox.minY - IMG_PADDING )
+		else
+			for k,c in pairs( self.curves ) do
+				c:draw( self.editing, self.closed )
+			end
+			if self.editing then
+				for k,c in pairs( self.corners ) do
+					c:draw()
+				end
 			end
 		end
 	end
@@ -582,6 +590,8 @@ function Shape:startFill()
 	
 	floodFillThread:set("newShape" .. numRenderedShapes, serialShape)
 	numRenderedShapes = numRenderedShapes + 1
+	
+	self:renderWireframe()
 end
 
 function Shape:finishFill( img, nm, sm )
@@ -592,7 +602,7 @@ function Shape:finishFill( img, nm, sm )
 	self.image.canvas = love.graphics.newCanvas( img:getWidth(), img:getHeight() )
 	love.graphics.setCanvas( self.image.canvas )
 	love.graphics.setLineStyle("smooth")
-	love.graphics.setLineWidth(self.lineWidth)
+	love.graphics.setLineWidth(self.lineWidth/2)
 
 	img = love.graphics.newImage( img )
 	
@@ -609,7 +619,7 @@ function Shape:finishFill( img, nm, sm )
 	--love.graphics.setColor( 255,255,255,255 )
 	--love.graphics.draw( nm, 0, 0 )
 	love.graphics.setColor( self.outCol.r, self.outCol.g, self.outCol.b, self.outCol.a )
-	
+	--love.graphics.setBlendMode("premultiplied")
 	if not self.materialName:find("interior") then
 		local a,b,c,d
 		for k,curve in pairs( self.curves ) do
@@ -623,11 +633,38 @@ function Shape:finishFill( img, nm, sm )
 		end
 	end
 	love.graphics.setCanvas()
+	--love.graphics.setBlendMode("alpha")
 	
-
 	self.image.diffuseMap = love.graphics.newImage( self.image.canvas:getImageData() )
 	self.image.rendering = false
 	self.image.finished = true
+end
+
+function Shape:renderWireframe()
+	local canvas = love.graphics.newCanvas( self.boundingBox.maxX - self.boundingBox.minX +IMG_PADDING*2,
+											self.boundingBox.maxY - self.boundingBox.minY+IMG_PADDING*2 )
+	love.graphics.setCanvas( canvas )
+	love.graphics.setLineStyle("smooth")
+	love.graphics.setLineWidth(2)
+	--love.graphics.setBlendMode("premultiplied")
+
+	love.graphics.setColor(255,255,255,255)
+	
+	local a,b,c,d
+	for k,curve in pairs( self.curves ) do
+		for i = 1,#curve.points-1 do
+			a = curve.points[i].x - self.boundingBox.minX + IMG_PADDING
+			b = curve.points[i].y - self.boundingBox.minY + IMG_PADDING
+			c = curve.points[i+1].x - self.boundingBox.minX + IMG_PADDING
+			d = curve.points[i+1].y - self.boundingBox.minY + IMG_PADDING
+			love.graphics.line( a, b, c, d )
+		end
+	end
+	
+	love.graphics.setCanvas()
+	self.image.wireframe = love.graphics.newImage(canvas:getImageData())
+	--canvas:getImageData():encode("wf.png")
+	--love.graphics.setBlendMode("alpha")
 end
 
 function Shape:calcBoundingBox()

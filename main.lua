@@ -6,6 +6,19 @@ local canvasWidth = 50
 local canvasHeight = 50
 local shapeControl
 
+local time
+local timeStr = ""
+
+function printDT( time, name )
+	timeStr = timeStr .. "\n" .. round(time*1000, 2) .. " (" .. name ..")"
+end
+
+function round( num, prec )
+	prec = prec or 0
+	
+	return math.floor(num*10^prec)/(10^prec)
+end
+
 function love.load()
 
 	assert(love.graphics.isSupported("canvas"), "Your graphics card does not support canvases, sorry!")
@@ -88,7 +101,7 @@ end
 
 
 function love.draw()
-
+	time = love.timer.getMicroTime()
 	if cam:getZoom() == 2 then
 		drawGrid( 0.5 )
 		drawGrid( 1 )
@@ -97,10 +110,17 @@ function love.draw()
 		drawGrid( 1 )
 	end
 	
+	printDT(love.timer.getMicroTime() - time, "grid")
+	time = love.timer.getMicroTime()
+	
 	cam:set()
 	shapeControl:draw()
+	printDT(love.timer.getMicroTime() - time, "shapes")
+	time = love.timer.getMicroTime()
 	cam:reset()
 	shapeControl:drawUI()
+	printDT(love.timer.getMicroTime() - time, "shapecontrol UI")
+	time = love.timer.getMicroTime()
 	
 	local y = 10
 	y = displayHeader(10, y, "Info")
@@ -151,7 +171,11 @@ function love.draw()
 	end
 	y = displayKey(10, y, "F5", "Screenshot")
 	
+	printDT(love.timer.getMicroTime() - time, "UI")
+	time = love.timer.getMicroTime()
 	
+	
+	love.graphics.print(timeStr, 15, love.graphics.getHeight() - 130)
 	
 	-- local xPos, yPos = love.mouse.getPosition()
 	-- love.graphics.print( angBetweenPoints({x=xPos, y=yPos}, {x=love.graphics.getWidth()/2, y=love.graphics.getHeight()/2}, {x=love.graphics.getWidth()/2, y = 0}) /math.pi*180, 10, y + 20 )
@@ -186,11 +210,16 @@ function love.mousereleased( x,y,button )
 end
 
 function love.update( dt )
+
+	timeStr = ""
+	time = love.timer.getMicroTime()
 	local x, y = cam:worldPos(love.mouse.getPosition())
 	shapeControl:update( x, y, dt )
 	if love.mouse.isDown("m") then
 		cam:drag( love.mouse.getPosition() )
 	end
+	printDT(love.timer.getMicroTime() - time, "update")
+	time = love.timer.getMicroTime()
 end
 
 function love.keypressed( key, unicode )

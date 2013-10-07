@@ -847,7 +847,6 @@ function ShapeControl:saveImages( )
 			canvasSM = love.graphics.newCanvas( bb.maxX - bb.minX,
 												bb.maxY - bb.minY)
 			love.graphics.push()
-			print("offset:", bb.minX, bb.minY)
 			love.graphics.translate( -bb.minX, -bb.minY )
 			for i = 1, #currentLayer do
 				love.graphics.setCanvas( canvasDiff )
