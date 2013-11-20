@@ -1,6 +1,6 @@
 -- material to be used in vessel construction
 
-local function edgeNormal( dir, amount )
+--[[local function edgeNormal( dir, amount )
 	local normal3D
 	if amount > 0.8 then
 		dir = dir*(1 - (amount - 0.8)*(amount - 0.8)*30)
@@ -12,7 +12,7 @@ local function edgeSpecular( dir, amount )
 	if amount > 0.8 then
 		return 190,255,255,255
 	end
-end
+end]]--
 
 local function patternSpecular( dir, amount )
 	local r = math.random(50)
@@ -27,8 +27,8 @@ local mat = {
 	
 	-- profile:
 	edgeDepth = 20,		-- how far each edge reaches into the shape
-	edgeNormal = edgeNormal,
-	edgeSpecular = edgeSpecular,
+	--edgeNormal = edgeNormal,
+	--edgeSpecular = edgeSpecular,
 	
 	-- pattern repeated over the full shape:
 	patternWidth = 2,

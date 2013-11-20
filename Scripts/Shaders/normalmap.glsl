@@ -6,10 +6,11 @@ uniform sampler2D sm;
 
 
 uniform vec2 Resolution = vec2(500,300);      //resolution of screen
-vec4 LightColor = vec4(1.0, 0.8, 0.6, 1.0);      //light RGBA -- alpha is intensity
+vec4 LightColor = vec4(1.0, 0.8, 0.6, 0.5);      //light RGBA -- alpha is intensity
 uniform vec4 AmbientColor = vec4(1.0, 1.0, 1.0, 0.5);    //ambient RGBA -- alpha is intensity 
 //vec3 Falloff = vec3(0.4,3,20);         //attenuation coefficients
-vec3 Falloff = vec3(0.8,1.0,3.0);         //attenuation coefficients
+vec3 Falloff = vec3(0.8,1.0,6.0);         //attenuation coefficients
+vec3 SunDir = vec3(0.0,0.0,1.0);
 
 vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 pixel_coords)
 {
@@ -54,7 +55,7 @@ FinalColor = DiffuseColor.rgb * Intensity.rgb*/
 	vec3 Diffuse = (LightColor.rgb * SpecularMap.rgb * LightColor.a) * max(dot(N, L), 0.0);
 
 	//pre-multiply ambient color with intensity
-	vec3 Ambient = AmbientColor.rgb * AmbientColor.a;
+	vec3 Ambient = AmbientColor.rgb * AmbientColor.a * N.z;
 	
 	//calculate attenuation
 	float Attenuation = 1.0 / ( Falloff.x + (Falloff.y*D) + (Falloff.z*D*D) );

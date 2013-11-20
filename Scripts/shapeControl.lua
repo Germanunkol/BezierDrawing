@@ -10,7 +10,7 @@ floodFillThread = nil
 local fileHeader = [[
 -------------------------------------------
 Design saved using Germanunkol's Bezier Design tool.
-To open the file, install the LÃ¶ve engine (Love2d.org) and get the project from:
+To open the file, install the Löve engine (Love2d.org) and get the project from:
 https://github.com/Germanunkol/BezierDrawing
 -------------------------------------------
 ]]
@@ -357,13 +357,29 @@ function ShapeControl:keypressed( key, unicode )
 		end
 	elseif key == "s" then
 		self:save()
-	elseif key == "l" then
+	elseif key == "o" then
 		self:load()
-	elseif key == "i" then
+	elseif key == "u" then
 		self:cycleLayers()
 	elseif key == "1" or key == "2" or key == "3" then
 		self:cycleLayers(tonumber(key))
-	elseif key == "o" then
+	elseif key == "i" then
+		if self.selectedShape then
+			self.selectedShape:modifyAngle( 0, 1 )
+		end
+	elseif key == "k" then
+		if self.selectedShape then
+			self.selectedShape:modifyAngle( 0, -1 )
+		end
+	elseif key == "j" then
+		if self.selectedShape then
+			self.selectedShape:modifyAngle( 1, 0 )
+		end
+	elseif key == "l" then
+		if self.selectedShape then
+			self.selectedShape:modifyAngle( -1, 0 )
+		end
+	elseif key == "p" then
 		self:saveImages()
 	end
 	
@@ -762,8 +778,12 @@ function ShapeControl:shapeFromString( str )
 				tmpShape.x = tonumber(value)
 			elseif key == "y" then
 				tmpShape.y = tonumber(value)
+			elseif key == "angX" then
+				tmpShape.angX = tonumber(value)
+			elseif key == "angY" then
+				tmpShape.angY = tonumber(value)
 			elseif key == "Point" then
-				x, y = value:match("([-?%d\.]+), ([-?%d\.]+)")
+				x, y = value:match("([-?%d.]+), ([-?%d.]+)")
 				tmpShape.points[#tmpShape.points+1] = {x=tonumber(x), y=tonumber(y)}
 			end
 		end
@@ -771,6 +791,7 @@ function ShapeControl:shapeFromString( str )
 
 
 	local shape = Shape:new( tmpShape.materialName )
+	shape:setAngle( tmpShape.angX or 0, tmpShape.angY or 0 )
 
 	for k = 1, #tmpShape.points, 3 do
 		shape:addCorner( tmpShape.points[k].x, tmpShape.points[k].y )

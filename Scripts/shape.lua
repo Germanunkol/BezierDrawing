@@ -6,6 +6,8 @@ require("Scripts/polygon")
 
 local clickDist = 10
 local IMG_PADDING = 25
+local ANGLE_STEP = math.pi/30
+local MAX_ANGLE = 14*math.pi/30
 
 Shape = class("Shape")
 local shapes = 0
@@ -31,6 +33,7 @@ function Shape:initialize( materialName )
 	--self.insCol = {r=50,g=255,b=20,a=200}
 	self.lineWidth = 2
 	
+	self.angle = { x=0,y=0 }	
 	self.materialName = materialName or "metal"
 	self.material = loadMaterial( self.materialName )
 	
@@ -71,7 +74,8 @@ function Shape:setMaterial( mat )
 	self.material = loadMaterial( self.materialName )
 	self:resetImage()
 	if self.closed and not self.edited then
-		self:startFill()
+		--self:startFill()
+		self:resetImage()
 	end
 end
 
@@ -556,15 +560,24 @@ function Shape:startFill()
 	self.image.rendering = true
 	self.image.percent = 0
 	
-	local serialShape = self.shapeID
-	serialShape = serialShape .. "{"
+	local serialShape = "ID{" .. self.shapeID .. "}\n"
+	serialShape = serialShape .. "bbox{"
 	serialShape = serialShape .. self.boundingBox.minX .. ","
 	serialShape = serialShape .. self.boundingBox.minY .. ","
 	serialShape = serialShape .. self.boundingBox.maxX .. ","
-	serialShape = serialShape .. self.boundingBox.maxY .. "}"
+	serialShape = serialShape .. self.boundingBox.maxY .. "}\n"
 	
-	serialShape = serialShape .. self.materialName .. "|"
+	serialShape = serialShape .. "ang{"
+	serialShape = serialShape .. self.angle.x .. ","
+	serialShape = serialShape .. self.angle.y .. "}\n"
+
+	serialShape = serialShape .. "mat{"
+	serialShape = serialShape .. self.materialName .. "}\n"
 	
+	self.startRenderTime = love.timer.getTime()
+
+	serialShape = serialShape .. "points{"
+
 	local startPoint = self.curves[1].cPoints[1]
 	local curPoint = startPoint
 	local curve
@@ -576,7 +589,7 @@ function Shape:startFill()
 				curve.points[i].x ~= curve.points[i-1].x or
 				curve.points[i].y ~= curve.points[i-1].y then
 				
-				serialShape	= serialShape .. 
+				serialShape	= serialShape ..
 					curve.points[i].x .. "," ..
 					curve.points[i].y .. "|"
 			end
@@ -587,6 +600,9 @@ function Shape:startFill()
 	serialShape	= serialShape .. 
 		startPoint.x .. "," ..
 		startPoint.y .. "|"
+	serialShape = serialShape .. "}\n"
+
+	--print("New shape being sent:\n", serialShape)
 	
 	floodFillThread:set("newShape" .. numRenderedShapes, serialShape)
 	numRenderedShapes = numRenderedShapes + 1
@@ -638,6 +654,8 @@ function Shape:finishFill( img, nm, sm )
 	self.image.diffuseMap = love.graphics.newImage( self.image.canvas:getImageData() )
 	self.image.rendering = false
 	self.image.finished = true
+
+	print("\tRendered shape " .. self.shapeID .. " in " .. love.timer.getTime() - self.startRenderTime .. " s.")
 end
 
 function Shape:renderWireframe()
@@ -797,6 +815,7 @@ function Shape:flip( dir )
 				self.curves[k].cPoints[i]:removeOffsetLock()
 			end
 		end
+		self.angle.x = -self.angle.x
 	else
 		local centerY = (self.boundingBox.maxY - self.boundingBox.minY)/2 + self.boundingBox.minY
 		for k = 1, #self.curves do
@@ -810,15 +829,41 @@ function Shape:flip( dir )
 				self.curves[k].cPoints[i]:removeOffsetLock()
 			end
 		end
+		self.angle.y = -self.angle.y
 	end
 	self.modified = true
 	self:resetImage()
+end
+
+function Shape:setAngle( xAxis, yAxis )
+	self.angle.x = math.max(math.min( xAxis, MAX_ANGLE ), -MAX_ANGLE )
+	self.angle.y = math.max(math.min( yAxis, MAX_ANGLE ), -MAX_ANGLE )
+end
+
+function Shape:modifyAngle( xAxis, yAxis )
+	if xAxis == -1 then
+		self.angle.x = math.min( self.angle.x + ANGLE_STEP, MAX_ANGLE )
+	elseif xAxis == 1 then
+		self.angle.x = math.max( self.angle.x - ANGLE_STEP, -MAX_ANGLE )
+	end
+
+	if yAxis == 1 then
+		self.angle.y = math.min( self.angle.y + ANGLE_STEP, MAX_ANGLE )
+	elseif yAxis == -1 then
+		self.angle.y = math.max( self.angle.y - ANGLE_STEP, -MAX_ANGLE )
+	end
+	
+	self:resetImage() -- force a re-render!
+	
+	print( self.angle.x*180/math.pi, self.angle.y*180/math.pi )
 end
 
 function Shape:duplicate()
 	new = Shape:new( self.materialName )
 	new:setEditing( false )
 	new:setSelected( false )
+	new.angle.x = self.angle.x
+	new.angle.y = self.angle.y
 	
 	print(#self.corners)
 	local c = self.corners[1]
@@ -863,6 +908,8 @@ function Shape:__tostring()
 	end
 	local str = "\tShape: " .. self.shapeID .. "\n"
 	str = str .. "\t\tmaterial: " .. self.materialName .. "\n"
+	str = str .. "\t\tangX: " .. self.angle.x .. "\n"
+	str = str .. "\t\tangY: " .. self.angle.y .. "\n"
 	str = str .. "\t\tclosed: " .. (self.closed and tostring(self.closed) or "false") .. "\n"
 	if self.boundingBox then
 		str = str .. "\t\tx: " .. self.boundingBox.minX .. "\n"

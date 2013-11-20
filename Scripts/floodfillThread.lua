@@ -14,8 +14,9 @@ require('Scripts/point')
 thisThread = love.thread.getThread()
 
 local function print( str )
+	if not str then str = "nil" end
 	thisThread:set("msg", str)
-	love.timer.sleep(0.1)
+	love.timer.sleep(0.5)
 end
 
 local shapeQueue = {}
@@ -386,7 +387,7 @@ function isInsideShape( shape, x, y )
 	local r,g,b,a = shape.imageData:getPixel( x, y )
 	
 	-- On outline? Then return false - not inside shape!
-	if (a == outCol.a and r == outCol.r and g == outCol.g and b == outCol.b) then
+	if a > 0 then --(a == outCol.a and r == outCol.r and g == outCol.g and b == outCol.b) then
 		return false
 	end
 	
@@ -397,7 +398,7 @@ function isInsideShape( shape, x, y )
 	for y1 = y-1,0,-1 do	-- move upwards and check the intersections
 		thisIsOnLine = false
 		r,g,b,a = shape.imageData:getPixel( x, y1 )
-		if (a == outCol.a and r == outCol.r and g == outCol.g and b == outCol.b) then
+		if a > 0 then --(a == outCol.a and r == outCol.r and g == outCol.g and b == outCol.b) then
 			thisIsOnLine = true
 		end
 		
@@ -415,7 +416,7 @@ function isInsideShape( shape, x, y )
 	for y1 = y+1,shape.imageData:getHeight()-1,1 do	-- move downwards and check the intersections
 		thisIsOnLine = false
 		r,g,b,a = shape.imageData:getPixel( x, y1 )
-		if (a == outCol.a and r == outCol.r and g == outCol.g and b == outCol.b) then
+		if a > 0 then --(a == outCol.a and r == outCol.r and g == outCol.g and b == outCol.b) then
 			thisIsOnLine = true
 		end
 		
@@ -431,7 +432,7 @@ function isInsideShape( shape, x, y )
 	for x1 = x-1,0,-1 do	-- move left and check the intersections
 		thisIsOnLine = false
 		r,g,b,a = shape.imageData:getPixel( x1, y )
-		if (a == outCol.a and r == outCol.r and g == outCol.g and b == outCol.b) then
+		if a > 0 then --(a == outCol.a and r == outCol.r and g == outCol.g and b == outCol.b) then
 			thisIsOnLine = true
 		end
 		
@@ -447,7 +448,7 @@ function isInsideShape( shape, x, y )
 	for x1 = x+1,shape.imageData:getWidth()-1,1 do	-- move right and check the intersections
 		thisIsOnLine = false
 		r,g,b,a = shape.imageData:getPixel( x1, y )
-		if (a == outCol.a and r == outCol.r and g == outCol.g and b == outCol.b) then
+		if a > 0 then --(a == outCol.a and r == outCol.r and g == outCol.g and b == outCol.b) then
 			thisIsOnLine = true
 		end
 		
@@ -638,9 +639,9 @@ function drawNormals( shape )
 			endPoint = shape.points[k] + shape.points[k].normal
 			
 			if shape.points[k].normal.red then
-			setColor( 255,0,0,255)
+				setColor( 255,0,0,255)
 			else
-			setColor( 0, 255, 0, 255 )
+				setColor( 0, 255, 0, 255 )
 			end
 			drawLine( shape.diffuseMap, shape.points[k].x, shape.points[k].y, endPoint.x, endPoint.y )
 		end
@@ -648,7 +649,11 @@ function drawNormals( shape )
 end
 
 function plainNormalMap( dx, dy, dz )
-	 return function(x, y, r, g, b, a)
+	local len = math.sqrt(dx*dx + dy*dy + dz*dz)
+	dx = dx/len
+	dy = dy/len
+	dz = dz/len
+	return function(x, y, r, g, b, a)
 		if a > 0 then
 			return 127 + dx*127, 127 + dy*127, 127 + dz*127-- + dx*128, 128 +dy*128, 128+dz*128,255
 		else
@@ -684,6 +689,15 @@ function drawNormalMap( shape )
 				end
 			end
 		else
+
+			local a, b = shape.angX, shape.angY
+			local x, y, z = 0,0,1
+			local dX, dY, dZ
+
+			dY = x*math.cos(b) + math.sin(b) * ( y*math.sin(a) + z*math.cos(a) )
+			dX = y*math.cos(a) - z*math.sin(a)
+			dZ = -x*math.sin(b) + math.cos(b) * ( y*math.sin(a) + z*math.cos(a) )
+
 			shape.normalMap:paste( shape.imageData, 0, 0 )
 			--[[if math.random(2) == 1 then
 			shape.normalMap:mapPixel( plainNormalMap( 0, 0.5, 0.5 ) )
@@ -691,7 +705,7 @@ function drawNormalMap( shape )
 			shape.normalMap:mapPixel( plainNormalMap( 0, -0.5, 0.5 ) )
 			end
 			]]--
-			shape.normalMap:mapPixel( plainNormalMap( 0, 0, 1 ) )
+			shape.normalMap:mapPixel( plainNormalMap( -dX, dY, dZ ) )
 		end
 	end
 	shape.step_nM = 1
@@ -892,6 +906,8 @@ end
 
 function drawDiffuseMapEdge( shape )
 	if shape.diffuseMap and shape.material.edgeDiffuse and shape.material.edgeDepth then
+		--print("diffuse")
+		--print( shape.material.edgeDepth)
 		k = shape.step_dM
 		
 		local P1, P2
@@ -963,91 +979,87 @@ function runThread()
 		newShape = thisThread:get("newShape" .. numRenderedShapes)
 		if newShape then
 			numRenderedShapes = numRenderedShapes + 1
-			pos = newShape:find( "{" )
-			if pos then
-				ID = newShape:sub( 1, pos - 1 )
-				newShape = newShape:sub( pos + 1 )
-				pos = newShape:find( "}" )
-				minX,minY,maxX,maxY = split(newShape:sub(1, pos-1), ",")
-				minX,minY,maxX,maxY = tonumber(minX),tonumber(minY),tonumber(maxX),tonumber(maxY)
-				-- minX,minY,maxX,maxY = math.floor(minX),math.floor(minY),math.floor(maxX),math.floor(maxY)
-				newShape = newShape:sub(pos+1)
+			
+			ID = newShape:match( "ID{(.-)}" )
+			minX, minY, maxX, maxY = newShape:match("bbox{(.-),(.-),(.-),(.-)}")
+	--		minX,minY,maxX,maxY = split(newShape:sub(1, pos-1), ",")
+			minX,minY,maxX,maxY = tonumber(minX),tonumber(minY),tonumber(maxX),tonumber(maxY)
+			-- minX,minY,maxX,maxY = math.floor(minX),math.floor(minY),math.floor(maxX),math.floor(maxY)
 
-	-- disregard any earlier rendering for this shape:
-				shapeQueue[ID] = {
-					percent = 0,
-					minX = minX,
-					minY = minY,
-					maxX = maxX,
-					maxY = maxY,
-					points = {},
-					seedList = {},
-					currentLine = 0,
-					pixelsFilled = 0,
-					
-					colorMapPercent = 0,
-					normalMapPercent = 0,
-					specularMapPercent = 0,
-					diffuseMapPercent = 0,
-				}
+			angX, angY = newShape:match("ang{(.-),(.-)}")
+			
+			mat = newShape:match("mat{(.-)}") or "metal"
+			pointList = newShape:match("points{(.-)}")
 
-				pos = newShape:find("|")
-				mat = newShape:sub(1, pos-1) or "metal"
-				newShape = newShape:sub(pos+1)
+-- disregard any earlier rendering for this shape:
+			shapeQueue[ID] = {
+				percent = 0,
+				minX = minX,
+				minY = minY,
+				maxX = maxX,
+				maxY = maxY,
+				angX = angX,
+				angY = angY,
+				points = {},
+				seedList = {},
+				currentLine = 0,
+				pixelsFilled = 0,
 				
-				shapeQueue[ID].material = loadMaterial( mat )
-				
-				tmpPoints = {}
-				for k, v in splitArguments( newShape ) do
-					tmpPoints[k] = v
+				colorMapPercent = 0,
+				normalMapPercent = 0,
+				specularMapPercent = 0,
+				diffuseMapPercent = 0,
+			}
+
+			
+			shapeQueue[ID].material = loadMaterial( mat )
+			
+			local x, y
+			local k = 1
+			for point in pointList:gmatch("(.-,.-|)") do
+				x, y = point:match("(.-),(.-)|")
+				shapeQueue[ID].points[k] = Point:new( tonumber(x) - minX + PADDING, tonumber(y) - minY + PADDING )
+				--print("\t" .. shapeQueue[ID].points[k].x .. shapeQueue[ID].points[k].y )
+				--shapeQueue[ID].points[k].x = math.floor( shapeQueue[ID].points[k].x )
+				--shapeQueue[ID].points[k].y = math.floor( shapeQueue[ID].points[k].y )
+				--thisThread:set("msg",  )
+				--os.execute("sleep .1")
+				if k > 1 and
+					shapeQueue[ID].points[k].x == shapeQueue[ID].points[k-1].x and
+					shapeQueue[ID].points[k].y == shapeQueue[ID].points[k-1].y then
+					thisThread:set("msg", "\t\tDOUBLE!!" .. shapeQueue[ID].points[k].x .. " | " .. shapeQueue[ID].points[k].y)
+					love.timer.sleep(0.1)
 				end
-			
-				for k = 1, #tmpPoints do
-					shapeQueue[ID].points[k] = Point:new( split(tmpPoints[k], ",") )
-					shapeQueue[ID].points[k].x = tonumber( shapeQueue[ID].points[k].x )
-												- minX + PADDING
-					shapeQueue[ID].points[k].y = tonumber( shapeQueue[ID].points[k].y )
-												- minY + PADDING
-					--shapeQueue[ID].points[k].x = math.floor( shapeQueue[ID].points[k].x )
-					--shapeQueue[ID].points[k].y = math.floor( shapeQueue[ID].points[k].y )
-					--thisThread:set("msg",  )
-					--os.execute("sleep .1")
-					if k > 1 and
-						shapeQueue[ID].points[k].x == shapeQueue[ID].points[k-1].x and
-						shapeQueue[ID].points[k].y == shapeQueue[ID].points[k-1].y then
-						thisThread:set("msg", "\t\tDOUBLE!!" .. shapeQueue[ID].points[k].x .. " | " .. shapeQueue[ID].points[k].y)
-						love.timer.sleep(0.1)
-					end
-				end
-			
-			
-				msg = "New shape for: " .. ID ..
-					" " .. minX .. 
-					" " .. minY .. 
-					" " .. maxX .. 
-					" " .. maxY ..
-					"\n\tnumPoints:" .. #shapeQueue[ID].points
-			
-				drawOutline(shapeQueue[ID])
-			
-				shapeQueue[ID].width = shapeQueue[ID].imageData:getWidth()
-				shapeQueue[ID].height = shapeQueue[ID].imageData:getHeight()
-				shapeQueue[ID].pixels = (shapeQueue[ID].width-10)*(shapeQueue[ID].height-10)
-			
-				-- Find starting point inside shape. Choose random point and check if it's inside.
-				local a,b
-				repeat			
-					a = math.random(0, shapeQueue[ID].width-1)
-					b = math.random(0, shapeQueue[ID].height-1)
-				until isInsideShape( shapeQueue[ID], a, b )
-			
-				shapeQueue[ID].seedList[1] = {
-					x = a,
-					y = b,
-				}
-				
-				correctShapeDirection( shapeQueue[ID] )
+				k = k + 1
 			end
+		
+		
+			msg = "New shape for: " .. ID ..
+				" " .. minX .. 
+				" " .. minY .. 
+				" " .. maxX .. 
+				" " .. maxY ..
+				"\n\tnumPoints:" .. #shapeQueue[ID].points
+		
+			drawOutline(shapeQueue[ID])
+		
+			shapeQueue[ID].width = shapeQueue[ID].imageData:getWidth()
+			shapeQueue[ID].height = shapeQueue[ID].imageData:getHeight()
+			shapeQueue[ID].pixels = (shapeQueue[ID].width-10)*(shapeQueue[ID].height-10)
+		
+			-- Find starting point inside shape. Choose random point and check if it's inside.
+			local a,b
+			repeat			
+				a = math.random(0, shapeQueue[ID].width-1)
+				b = math.random(0, shapeQueue[ID].height-1)
+			until isInsideShape( shapeQueue[ID], a, b )
+		
+			shapeQueue[ID].seedList[1] = {
+				x = a,
+				y = b,
+			}
+			
+			correctShapeDirection( shapeQueue[ID] )
 		end
 	
 		shapeFound = false
