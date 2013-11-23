@@ -316,7 +316,8 @@ function ShapeControl:release( x, y, button )
 	end
 	if self.boxSel.active then
 		local mX, mY = cam:worldPos( love.mouse.getPosition() )
-		self:boxSelect( self.boxSel.startX, self.boxSel.startY, mX, mY ) 
+		local sX, sY = cam:worldPos( self.boxSel.startX, self.boxSel.startY )
+		self:boxSelect( sX, sY, mX, mY ) 
 		self.boxSel.active = false
 	end
 end
@@ -350,15 +351,11 @@ function ShapeControl:keypressed( key, unicode )
 		end
 	elseif key == "+" then		-- move shape to lower layer:
 		if #self.selectedShapes > 0 then
-			print("wtf", #self.shapes)
 			for k = #self.shapes-1, 1, -1 do	-- if it's the highest shape, don't bother moving it
-				print("k",k, self.shapes[k]:getSelected(), self.shapes[k+1]:getSelected())
 				if self.shapes[k]:getSelected() and not self.shapes[k+1]:getSelected() then
-					print("\tt")
 					self.shapes[k], self.shapes[k+1] = self.shapes[k+1], self.shapes[k]
 					self.shapes[k]:setLayer( k )
 					self.shapes[k+1]:setLayer( k+1 )
-					print("new layers:", k, k+1)
 				end
 			end
 		end
@@ -369,7 +366,6 @@ function ShapeControl:keypressed( key, unicode )
 					self.shapes[k], self.shapes[k-1] = self.shapes[k-1], self.shapes[k]
 					self.shapes[k]:setLayer( k )
 					self.shapes[k-1]:setLayer( k-1 )
-					print("new layers:", k, k-1)
 				end
 			end
 		end

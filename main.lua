@@ -140,10 +140,11 @@ function love.draw()
 		if shapeControl:getNumShapes() > 0 then
 			y = displayKey(10, y, "Click", "Select")
 			y = displayKey(10, y, "Double Click", "Edit")
-			y = displayKey(10, y, "Click + Drag", "Move")
+			y = displayKey(10, y, "Click + Drag", "Box Select")
 		end
-		if shapeControl:getSelectedShape() then
+		if #shapeControl:getSelectedShape() > 0 then
 			y = displayHeader(10, y, "Selected")
+			y = displayKey(10, y, "Select + Drag", "Move")
 			y = displayKey(10, y, "Delete", "Delete Shape")
 			y = displayKey(10, y, "+", "Raise Shape")
 			y = displayKey(10, y, "-", "Lower Shape")
