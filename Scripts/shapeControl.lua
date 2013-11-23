@@ -23,10 +23,13 @@ function ShapeControl:initialize( gridSize, canvasWidth, canvasHeight, designNam
 	
 	self:resetShapes()
 	
-	self.selectedShape = nil
+	self.selectedShapes = {}
 	self.editedShape = nil
 	
 	self.materialList = {}
+
+	-- initialize box selection:
+	self.boxSel = {}
 	
 	-- for double clicking:
 	self.doubleClickTime = 0.3
@@ -58,7 +61,7 @@ function ShapeControl:resetShapes()
 end
 
 function ShapeControl:getSelectedShape()
-	return self.selectedShape
+	return self.selectedShapes
 end
 function ShapeControl:getEditedShape()
 	return self.editedShape
@@ -123,13 +126,20 @@ function ShapeControl:cycleLayers( num )
 		self.editedShape:setEditing( false )
 		self.editedShape = nil
 	end
-	if self.selectedShape then
-		self.selectedShape:setSelected( false )
-		self.selectedShape = nil
-	end
-	
+
+	self:unselectAll()
+
 	-- select a material that's valid for the layer:
 	self:selectMaterial()
+end
+
+function ShapeControl:unselectAll()
+	if #self.selectedShapes > 0 then
+		for k = 1, #self.selectedShapes do
+			self.selectedShapes[k]:setSelected( false )
+			self.selectedShapes[k] = nil
+		end
+	end
 end
 
 function ShapeControl:click( mX, mY, button, zoom )
@@ -210,19 +220,25 @@ function ShapeControl:click( mX, mY, button, zoom )
 				
 					hit = self:getHitShape( mX, mY )
 					if hit then
-						if self.selectedShape then
-							self.selectedShape:setSelected( false )
-						end
-						hit:setSelected( true )
-						self.selectedShape = hit
 						
-						self.draggedShape = hit
-						hit:startDragging( mX, mY )
-					else
-						if self.selectedShape then
-							self.selectedShape:setSelected( false )
-							self.selectedShape = nil
+						if not love.keyboard.isDown("lshift") and
+							not hit:getSelected() then
+							self:unselectAll()
 						end
+
+						if not hit:getSelected() then
+							hit:setSelected( true )
+							self.selectedShapes[#self.selectedShapes+1] = hit
+						end
+					
+						self.draggedShape = { startDragX = mX, startDragY = mY }
+						for k = 1, #self.selectedShapes do
+							self.selectedShapes[k]:startDragging( mX, mY )
+						end
+					else
+						self:unselectAll()
+						self.boxSel.active = true
+						self.boxSel.startX, self.boxSel.startY = cam:screenPos(mX, mY)
 					end
 
 				end
@@ -231,7 +247,9 @@ function ShapeControl:click( mX, mY, button, zoom )
 	end
 	if button == "r" then
 		if self.draggedShape then
-			self.draggedShape:drop()
+			for k = 1, #self.selectedShapes do
+				self.selectedShape[k]:drop()
+			end
 			self.draggedShape = nil
 		else
 			local hit
@@ -243,7 +261,7 @@ function ShapeControl:click( mX, mY, button, zoom )
 					self.editedShape:removeCorner( hit )
 					if self.editedShape:getNumCorners() == 0 then
 						removeFromTbl( self.shapes, self.editedShape )
-						self.selectedShape = nil
+						self:unselectAll()
 						self.editedShape = nil
 					end
 				else	-- right click on control point should reset this control point!
@@ -254,17 +272,19 @@ function ShapeControl:click( mX, mY, button, zoom )
 	end
 	
 	if self.editedShape then
-		if self.editedShape ~= self.selectedShape then
-			if self.selectedShape then
-				self.selectedShape:setSelected( false )
+		if self.editedShape ~= self.selectedShapes[1] then
+			if self.selectedShapes[1] then
+				self:unselectAll()
 			end
-			self.selectedShape = self.editedShape
+			self.selectedShapes[1] = self.editedShape
 		end
 	end
 	for k = 1, #self.shapes do
 		if self.shapes[k]:getNumCorners() <= 1 and self.shapes[k] ~= self.editedShape then
-			if self.selectedShape == self.shapes[k] then
-				self.selectedShape = nil
+			for i = 1, #self.selectedShapes do
+				if self.selectedShapes[i] == self.shapes[k] then
+					removeFromTbl( self.selectedShapes, self.selectedShapes[i])
+				end
 			end
 			
 			removeFromTbl( self.shapes, self.shapes[k] )
@@ -274,86 +294,119 @@ end
 
 function ShapeControl:release( x, y, button )
 	if self.draggedShape then
-		self.draggedShape:stopDragging( x, y )
-		self.draggedShape = nil
+		self.draggedShape = nil	
+		for k = 1, #self.selectedShapes do
+			self.selectedShapes[k]:stopDragging( x, y )
+		end
 	elseif self.editedShape then
 		self.editedShape:release()
+--[[	else
+		local mX, mY = cam:worldPos( x, y )
+		hit = self:getHitShape( mX, mY )
+		if hit then
+			if not love.keyboard.isDown("lshift") then
+				self:unselectAll()
+			end
+			
+			if not hit:getSelected() then
+				hit:setSelected( true )
+				self.selectedShapes[#self.selectedShapes+1] = hit
+			end
+		end]]--
+	end
+	if self.boxSel.active then
+		local mX, mY = cam:worldPos( love.mouse.getPosition() )
+		self:boxSelect( self.boxSel.startX, self.boxSel.startY, mX, mY ) 
+		self.boxSel.active = false
 	end
 end
 
-
+function ShapeControl:boxSelect( x1, y1, x2, y2 )
+	self:unselectAll()
+	for k = 1, #self.shapes do
+		if self.shapes[k]:isInsideBox( x1, y1, x2, y2 ) then
+			self.selectedShapes[#self.selectedShapes+1] = self.shapes[k]
+			self.shapes[k]:setSelected( true )
+		end
+	end
+end
 function ShapeControl:keypressed( key, unicode )
 	if key == "g" then
 		self:setSnapToGrid( not self:getSnapToGrid() )
 	elseif key == "h" then
 		self:setSnapToCPoints( not self:getSnapToCPoints() )
 	elseif key == "delete" then
-		if self.selectedShape then
-			if self.editedShape == self.selectedShape then
-				self.editedShape = nil
+		if #self.selectedShapes > 0 then
+			for k = 1, #self.selectedShapes do
+				if self.editedShape == self.selectedShapes[k] then
+					self.editedShape = nil
+				end
+			
+				removeFromTbl( self.shapes, self.selectedShapes[k] )
+			
+				self.selectedShapes[k] = nil
 			end
-			
-			removeFromTbl( self.shapes, self.selectedShape )
-			
-			self.selectedShape = nil
 		end
 	elseif key == "+" then		-- move shape to lower layer:
-		if self.selectedShape then
-			for k = 1, #self.shapes-1 do	-- if it's the highest shape, don't bother moving it up
-				if self.shapes[k] == self.selectedShape then
+		if #self.selectedShapes > 0 then
+			for k = #self.shapes-1, 1 do	-- if it's the highest shape, don't bother moving it
+				if self.shapes[k]:getSelected() and not self.shapes[k+1]:getSelected() then
 					self.shapes[k], self.shapes[k+1] = self.shapes[k+1], self.shapes[k]
 					self.shapes[k]:setLayer( k )
 					self.shapes[k+1]:setLayer( k+1 )
 					print("new layers:", k, k+1)
-					break
 				end
 			end
 		end
 	elseif key == "-" then		 -- move shape to higher layer:
-		if self.selectedShape then
-			for k = #self.shapes, 2, -1 do	-- if it's the lowest shape, don't bother moving it
-				if self.shapes[k] == self.selectedShape then
+		if #self.selectedShapes > 0 then
+			for k = 2, #self.shapes do	-- if it's the lowest shape, don't bother moving it
+				if self.shapes[k]:getSelected() and not self.shapes[k-1]:getSelected() then
 					self.shapes[k], self.shapes[k-1] = self.shapes[k-1], self.shapes[k]
 					self.shapes[k]:setLayer( k )
 					self.shapes[k-1]:setLayer( k-1 )
-					break
+					print("new layers:", k, k-1)
 				end
 			end
 		end
-	elseif key == "m" then
+	--[[elseif key == "m" then
 	
 		-- Scroll through all available materials.
 		-- Find the one the shape is currently using
 		-- then assign the next one, or the first material
 		-- if the current one is the last one in the list:
-		if self.selectedShape then
-			mat = self.selectedShape:getMaterial()
+		if self.selectedShapes then
+			mat = self.selectedShapes:getMaterial()
 			for k = 1, #self.materialList do
 				if self.materialList[k] == mat then
 					if k < #self.materialList then
-						self.selectedShape:setMaterial(self.materialList[k+1])
+						self.selectedShapes:setMaterial(self.materialList[k+1])
 					else
-						self.selectedShape:setMaterial(self.materialList[1])
+						self.selectedShapes:setMaterial(self.materialList[1])
 					end
 				end
 			end
-		end
+		end]]--
 	elseif key == "x" then
-		if self.selectedShape then
-			self.selectedShape:flip( "x" )
+		for k = 1, #self.selectedShapes do
+			self.selectedShapes[k]:flip( "x" )
 		end
 	elseif key == "y" then
-		if self.selectedShape then
-			self.selectedShape:flip( "y" )
+		for k = 1, #self.selectedShapes do
+			self.selectedShapes[k]:flip( "y" )
 		end
 	elseif key == "d" then
-		if self.selectedShape and not self.editedShape and not self.draggedShape then
-			local new = self.selectedShape:duplicate()
-			self.shapes[#self.shapes+1] = new
-			self.selectedShape:setSelected( false )
-			new:setSelected( true )
-			self.selectedShape = new
-			new:setLayer( #self.shapes )
+		if #self.selectedShapes > 0 and not self.editedShape and not self.draggedShape then
+			local new = {}
+			for k = 1, #self.selectedShapes do
+				new[k] = self.selectedShapes[k]:duplicate()
+				
+				self.shapes[#self.shapes+1] = new[k]
+				self.selectedShapes[k]:setSelected( false )
+				new[k]:setSelected( true )
+				new[k]:setLayer( #self.shapes )
+			end
+			self.selectedShapes = new
 		end
 	elseif key == "s" then
 		self:save()
@@ -364,26 +417,24 @@ function ShapeControl:keypressed( key, unicode )
 	elseif key == "1" or key == "2" or key == "3" then
 		self:cycleLayers(tonumber(key))
 	elseif key == "i" then
-		if self.selectedShape then
-			self.selectedShape:modifyAngle( 0, 1 )
+		for k = 1, #self.selectedShapes do
+			self.selectedShapes[k]:modifyAngle( 0, 1 )
 		end
 	elseif key == "k" then
-		if self.selectedShape then
-			self.selectedShape:modifyAngle( 0, -1 )
+		for k = 1, #self.selectedShapes do
+			self.selectedShapes[k]:modifyAngle( 0, -1 )
 		end
 	elseif key == "j" then
-		if self.selectedShape then
-			self.selectedShape:modifyAngle( 1, 0 )
+		for k = 1, #self.selectedShapes do
+			self.selectedShapes[k]:modifyAngle( 1, 0 )
 		end
 	elseif key == "l" then
-		if self.selectedShape then
-			self.selectedShape:modifyAngle( -1, 0 )
+		for k = 1, #self.selectedShapes do
+			self.selectedShapes[k]:modifyAngle( -1, 0 )
 		end
 	elseif key == "p" then
 		self:saveImages()
-	end
-	
-	if key == "escape" then
+	elseif key == "escape" then
 		if self.editedShape then
 			self.editedShape:setEditing( false )
 			self.editedShape = nil
@@ -391,6 +442,7 @@ function ShapeControl:keypressed( key, unicode )
 	end
 end
 
+local mouseX, mouseY = 0,0
 
 function ShapeControl:draw()
 
@@ -414,20 +466,20 @@ function ShapeControl:draw()
 	if self.editedShape then
 		self.editedShape:draw( self.editedShape )
 	end
-	if self.selectedShape then
-		self.selectedShape:drawOutline()
+	for k = 1, #self.selectedShapes do
+		self.selectedShapes[k]:drawOutline()
 	end
+
 end
 
-local mouseX, mouseY = 0,0
 function ShapeControl:drawUI()
-	--if self.selectedShape then
+	--if self.selectedShapes then
 	if self.shapes == self.layers[1] then	-- exterior:
 		for k = 1,#self.materials do
 			if not self.materials[k].interior then
 			--self.materials[k].baseShape:moveTo( 0, 0 )
-					--self.selectedShape.boundingBox.maxX + 25,
-					--self.selectedShape.boundingBox.maxY - 20 - k*30)
+					--self.selectedShapes.boundingBox.maxX + 25,
+					--self.selectedShapes.boundingBox.maxY - 20 - k*30)
 			--self.materials[k].baseShape:update()
 				self.materials[k].currentShape:draw( )
 			end
@@ -455,6 +507,14 @@ function ShapeControl:drawUI()
 		end
 		--x = love.graphics.getWidth() - 10 - love.graphics.getFont():getWidth(self.layers[k].name)
 		--love.graphics.print( self.layers[k].name, x, 10 + k*love.graphics.getFont():getHeight())
+	end
+
+	if self.boxSel.active then
+		local mX, mY = love.mouse.getPosition()
+		--mX, mY = cam:worldPos(mX, mY)
+		mX = mX - self.boxSel.startX
+		mY = mY - self.boxSel.startY
+		love.graphics.rectangle( "line", self.boxSel.startX, self.boxSel.startY, mX, mY)
 	end
 end
 
@@ -504,7 +564,9 @@ function ShapeControl:update( mX, mY, dt )
 			mY = math.floor((dY+self.snapSize/2)/self.snapSize)*self.snapSize
 					+ self.draggedShape.startDragY
 		end
-		self.draggedShape:drag( mX, mY )
+		for k = 1, #self.selectedShapes do
+			self.selectedShapes[k]:drag( mX, mY )
+		end
 	end
 	
 	local err = floodFillThread:get("error")
@@ -654,8 +716,8 @@ function ShapeControl:uiHit()
 					end
 					m.currentShape = m.selShape
 					self.currentMaterial = m.name
-					if self.selectedShape then
-						self.selectedShape:setMaterial( m.name )
+					for k = 1, #self.selectedShapes do
+						self.selectedShapes[k]:setMaterial( m.name )
 					end
 					return true
 				end
@@ -670,8 +732,8 @@ function ShapeControl:uiHit()
 					end
 					m.currentShape = m.selShape
 					self.currentMaterial = m.name
-					if self.selectedShape then
-						self.selectedShape:setMaterial( m.name )
+					for k = 1, #self.selectedShapes do
+						self.selectedShapes[k]:setMaterial( m.name )
 					end
 					return true
 				end
@@ -715,7 +777,7 @@ function ShapeControl:load()
 	
 	self:resetShapes()
 	
-	self.selectedShape = nil
+	self.selectedShapes = {}
 	self.editedShape = nil
 	self.draggedShape = nil
 	

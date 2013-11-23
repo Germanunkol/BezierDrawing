@@ -690,14 +690,16 @@ function drawNormalMap( shape )
 			end
 		else
 
-			local a, b = shape.angX, shape.angY
+			--[[local a, b = shape.angX, shape.angY
 			local x, y, z = 0,0,1
 			local dX, dY, dZ
 
 			dY = x*math.cos(b) + math.sin(b) * ( y*math.sin(a) + z*math.cos(a) )
 			dX = y*math.cos(a) - z*math.sin(a)
 			dZ = -x*math.sin(b) + math.cos(b) * ( y*math.sin(a) + z*math.cos(a) )
-
+			]]--
+			local dX, dY = shape.angX, shape.angY
+			local dZ = math.sqrt(1 - dX*dX - dY*dY)
 			shape.normalMap:paste( shape.imageData, 0, 0 )
 			--[[if math.random(2) == 1 then
 			shape.normalMap:mapPixel( plainNormalMap( 0, 0.5, 0.5 ) )
@@ -705,7 +707,7 @@ function drawNormalMap( shape )
 			shape.normalMap:mapPixel( plainNormalMap( 0, -0.5, 0.5 ) )
 			end
 			]]--
-			shape.normalMap:mapPixel( plainNormalMap( -dX, dY, dZ ) )
+			shape.normalMap:mapPixel( plainNormalMap( dX, dY, dZ ) )
 		end
 	end
 	shape.step_nM = 1

@@ -6,8 +6,9 @@ require("Scripts/polygon")
 
 local clickDist = 10
 local IMG_PADDING = 25
-local ANGLE_STEP = math.pi/30
-local MAX_ANGLE = 14*math.pi/30
+local ANGLE_STEP = 0.1--math.pi/30
+local MAX_ANGLE = 1--14*math.pi/30
+local ANG_DISPL_SIZE = 12
 
 Shape = class("Shape")
 local shapes = 0
@@ -196,6 +197,20 @@ function Shape:selectCorner( new )
 	end
 end
 
+function Shape:isInsideBox( x1, y1, x2, y2 )
+	if x2 < x1 then x2,x1 = x1,x2 end
+	if y2 < y1 then y2,y1 = y1,y2 end
+	if x1 < self.boundingBox.minX and y1 < self.boundingBox.minY and
+		x2 > self.boundingBox.maxX and y2 > self.boundingBox.maxY then
+		return true
+	elseif x1 > self.boundingBox.maxX and y1 > self.boundingBox.maxY and
+		x2 < self.boundingBox.minX and y2 < self.boundingBox.minY then
+		return true
+	else
+		return false
+	end
+end
+
 function Shape:getSelectedCorner()
 	return self.selectedCorner
 end
@@ -318,10 +333,12 @@ end
 function Shape:startDragging( x, y )
 	self.dragged = true
 	self.startDragX, self.startDragY = x, y
+print("start:",self.startDragX, self.startDragY)
 end
 
 function Shape:stopDragging( x, y )
 	if self.offsetX and self.offsetY then
+		print("offset:",self.offsetX, self.offsetY)
 		for k = 1, #self.curves do
 			for i = 1, #self.curves[k].cPoints do
 				self.curves[k].cPoints[i]:addOffset( self.offsetX, self.offsetY )
@@ -462,6 +479,30 @@ function Shape:drawOutline()
 			love.graphics.print( str, self.boundingBox.maxX + 24,
 					self.boundingBox.maxY - love.graphics.getFont():getHeight())
 		end
+
+		if self.angle.x ~= 0 or self.angle.y ~= 0 then
+
+			local centerX = self.boundingBox.minX - ANG_DISPL_SIZE
+			local centerY = self.boundingBox.minY - ANG_DISPL_SIZE
+			
+			love.graphics.setColor( 128, 255, 255 )
+			love.graphics.line( centerX, centerY,
+								centerX + ANG_DISPL_SIZE/MAX_ANGLE*self.angle.x,
+								centerY - ANG_DISPL_SIZE/MAX_ANGLE*self.angle.y)
+			--[[local a,b,x,y,z = self.angle.x, self.angle.y, 0, 0, 10
+			local dY,dX
+			dY = x*math.cos(b) + math.sin(b) * ( y*math.sin(a) + z*math.cos(a) )
+			dX = y*math.cos(a) - z*math.sin(a)
+			local centerX = self.boundingBox.minX - ANG_DISPL_SIZE
+			local centerY = self.boundingBox.minY - ANG_DISPL_SIZE
+			
+			love.graphics.setColor( 128, 255, 255 )
+			love.graphics.line( centerX, centerY,
+								centerX - dX, centerY - dY)
+			]]--
+			love.graphics.setColor( self.outCol.r, self.outCol.g, self.outCol.b, self.outCol.a )
+			love.graphics.circle( "line", centerX, centerY, ANG_DISPL_SIZE)
+		end
 		self:drawLayer()
 	end
 	
@@ -495,6 +536,9 @@ function Shape:setSelected( bool )
 	self.selected = bool
 end
 
+function Shape:getSelected()
+	return self.selected or false
+end
 
 function Shape:getNumCorners()
 	return #self.corners
@@ -842,15 +886,21 @@ end
 
 function Shape:modifyAngle( xAxis, yAxis )
 	if xAxis == -1 then
-		self.angle.x = math.min( self.angle.x + ANGLE_STEP, MAX_ANGLE )
+		self.angle.x =  self.angle.x + ANGLE_STEP
 	elseif xAxis == 1 then
-		self.angle.x = math.max( self.angle.x - ANGLE_STEP, -MAX_ANGLE )
+		self.angle.x = self.angle.x - ANGLE_STEP
 	end
 
 	if yAxis == 1 then
-		self.angle.y = math.min( self.angle.y + ANGLE_STEP, MAX_ANGLE )
+		self.angle.y = self.angle.y + ANGLE_STEP
 	elseif yAxis == -1 then
-		self.angle.y = math.max( self.angle.y - ANGLE_STEP, -MAX_ANGLE )
+		self.angle.y = self.angle.y - ANGLE_STEP
+	end
+	
+	local len = math.sqrt(self.angle.x*self.angle.x + self.angle.y*self.angle.y)
+	if len > MAX_ANGLE then
+		self.angle.x = self.angle.x/len
+		self.angle.y = self.angle.y/len
 	end
 	
 	self:resetImage() -- force a re-render!

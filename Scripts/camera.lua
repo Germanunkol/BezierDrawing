@@ -36,6 +36,15 @@ function Camera:zoomOut()
 	self:setZoom( self.zoom/2 )
 end
 
+function Camera:screenPos(x,y)
+        -- x,y = ((x,y) - (self.x, self.y)):rotated(self.rot) * self.scale + center
+        local w,h = love.graphics.getWidth(), love.graphics.getHeight()
+        local c,s = math.cos(self.angle), math.sin(self.angle)
+        x,y = x - self.x, y - self.y
+        x,y = c*x - s*y, s*x + c*y
+        return x*self.zoom + w/2, y*self.zoom + h/2
+end
+
 function Camera:worldPos( x, y )
 	local w,h = love.graphics.getWidth(), love.graphics.getHeight()
 	local c,s = math.cos(-self.angle), math.sin(-self.angle)
