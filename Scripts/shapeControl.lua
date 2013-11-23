@@ -350,8 +350,11 @@ function ShapeControl:keypressed( key, unicode )
 		end
 	elseif key == "+" then		-- move shape to lower layer:
 		if #self.selectedShapes > 0 then
-			for k = #self.shapes-1, 1 do	-- if it's the highest shape, don't bother moving it
+			print("wtf", #self.shapes)
+			for k = #self.shapes-1, 1, -1 do	-- if it's the highest shape, don't bother moving it
+				print("k",k, self.shapes[k]:getSelected(), self.shapes[k+1]:getSelected())
 				if self.shapes[k]:getSelected() and not self.shapes[k+1]:getSelected() then
+					print("\tt")
 					self.shapes[k], self.shapes[k+1] = self.shapes[k+1], self.shapes[k]
 					self.shapes[k]:setLayer( k )
 					self.shapes[k+1]:setLayer( k+1 )
