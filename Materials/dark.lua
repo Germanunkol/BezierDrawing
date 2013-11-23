@@ -14,6 +14,10 @@ local function edgeSpecular( dir, amount )
 	end
 end]]--
 
+local function edgeDiffuse()
+	return 60,60,60,255
+end
+
 local function patternSpecular( dir, amount )
 	local r = math.random(50)
 	return 155-r,200-r,200-r
@@ -26,9 +30,10 @@ local mat = {
 	--colSpecular = { r = 155, g=200, b=200 },
 	
 	-- profile:
-	edgeDepth = 20,		-- how far each edge reaches into the shape
+	edgeDepth = 1,		-- how far each edge reaches into the shape
 	--edgeNormal = edgeNormal,
 	--edgeSpecular = edgeSpecular,
+	edgeDiffuse = edgeDiffuse,
 	
 	-- pattern repeated over the full shape:
 	patternWidth = 2,

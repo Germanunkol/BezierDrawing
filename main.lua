@@ -24,6 +24,8 @@ function love.load()
 	assert(love.graphics.isSupported("canvas"), "Your graphics card does not support canvases, sorry!")
 	assert(love.graphics.isSupported("pixeleffect"), "Your graphics card does not support shaders, sorry!")
 
+	love.graphics.setDefaultImageFilter("nearest", "nearest")
+
 	local imgName = arg[2]
 
 	love.filesystem.setIdentity("BezierDrawing")

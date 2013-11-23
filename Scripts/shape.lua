@@ -381,16 +381,23 @@ function Shape:draw( editMode )
 		self.shader:send( "LightPos", {x, (love.graphics.getHeight() - y), .04} )
 		self.shader:send("nm", self.image.normalMap)
 		self.shader:send("sm", self.image.specularMap)
-	
 		--if self.selected then
 		--	love.graphics.setColor(255,255,255,200)
 		--else
-			love.graphics.setColor(255,255,255,255)
+		love.graphics.setColor(255,255,255,255)
 		--end
 		love.graphics.setPixelEffect(self.shader)
 		love.graphics.draw( self.image.diffuseMap,
 							self.boundingBox.minX - IMG_PADDING,
 							self.boundingBox.minY - IMG_PADDING )
+		--love.graphics.draw( self.image.nm, self.boundingBox.minX-5, self.boundingBox.minY-5 )
+	--	love.graphics.draw( self.image.specularMap,
+	--						self.boundingBox.minX +150 - IMG_PADDING,
+	--						self.boundingBox.minY - IMG_PADDING )
+		--love.graphics.draw( self.image.nm, self.boundingBox.minX-5, self.boundingBox.minY-5 )
+	--	love.graphics.draw( self.image.normalMap,
+	--						self.boundingBox.minX +300- IMG_PADDING,
+	--						self.boundingBox.minY - IMG_PADDING )
 		--love.graphics.draw( self.image.nm, self.boundingBox.minX-5, self.boundingBox.minY-5 )
 		--love.graphics.setColor(255,255,255,255)
 		--love.graphics.setLineWidth(2)
@@ -403,7 +410,8 @@ function Shape:draw( editMode )
 			--end
 		--end
 		love.graphics.setPixelEffect()
-		
+		love.graphics.setBlendMode("alpha")
+
 	elseif not self.image.tempImage then
 		if self.image.wireframe then
 			love.graphics.setColor(200,200,200,100)
@@ -659,12 +667,12 @@ function Shape:finishFill( img, nm, sm )
 	--img:encode("img.png")
 	--sm:encode("sm.png")
 	
-	self.image.canvas = love.graphics.newCanvas( img:getWidth(), img:getHeight() )
-	love.graphics.setCanvas( self.image.canvas )
-	love.graphics.setLineStyle("smooth")
-	love.graphics.setLineWidth(self.lineWidth/2)
+	--self.image.canvas = love.graphics.newCanvas( img:getWidth(), img:getHeight() )
+	--love.graphics.setCanvas( self.image.canvas )
+	--love.graphics.setLineStyle("smooth")
+	--love.graphics.setLineWidth(self.lineWidth*2)
 
-	img = love.graphics.newImage( img )
+	--img = love.graphics.newImage( img )
 	
 	self.image.normalMap = love.graphics.newImage( nm )
 	self.image.specularMap = love.graphics.newImage( sm )
@@ -674,11 +682,11 @@ function Shape:finishFill( img, nm, sm )
 							self.material.col.b,
 							self.material.col.a )
 	]]--
-	love.graphics.setColor(255,255,255,255)
-	love.graphics.draw( img, 0, 0 )
+	--love.graphics.setColor(255,255,255,255)
+	--love.graphics.draw( img, 0, 0 )
 	--love.graphics.setColor( 255,255,255,255 )
 	--love.graphics.draw( nm, 0, 0 )
-	love.graphics.setColor( self.outCol.r, self.outCol.g, self.outCol.b, self.outCol.a )
+--[[	love.graphics.setColor( self.outCol.r, self.outCol.g, self.outCol.b, self.outCol.a )
 	--love.graphics.setBlendMode("premultiplied")
 	if not self.materialName:find("interior") then
 		local a,b,c,d
@@ -691,11 +699,12 @@ function Shape:finishFill( img, nm, sm )
 				love.graphics.line( a, b, c, d )
 			end
 		end
-	end
-	love.graphics.setCanvas()
+	end]]--
+	--love.graphics.setCanvas()
 	--love.graphics.setBlendMode("alpha")
 	
-	self.image.diffuseMap = love.graphics.newImage( self.image.canvas:getImageData() )
+	--self.image.diffuseMap = love.graphics.newImage( self.image.canvas:getImageData() )
+	self.image.diffuseMap = love.graphics.newImage( img )
 	self.image.rendering = false
 	self.image.finished = true
 
@@ -784,7 +793,6 @@ function Shape:update( dt )
 				else
 					local tmpimg = floodFillThread:get( self.shapeID .. "(tmpimg)")
 					if tmpimg then
-						--tmpimg:encode("test.png")
 						self.image.tempImage = love.graphics.newImage( tmpimg )
 					end
 				end

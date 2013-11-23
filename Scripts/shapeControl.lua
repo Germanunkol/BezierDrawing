@@ -337,6 +337,7 @@ function ShapeControl:keypressed( key, unicode )
 		self:setSnapToCPoints( not self:getSnapToCPoints() )
 	elseif key == "delete" then
 		if #self.selectedShapes > 0 then
+			print(#self.selectedShapes)
 			for k = 1, #self.selectedShapes do
 				if self.editedShape == self.selectedShapes[k] then
 					self.editedShape = nil

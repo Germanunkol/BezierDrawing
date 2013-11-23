@@ -19,6 +19,10 @@ local function patternSpecular( dir, amount )
 	return 185-r,220-r,220-r
 end
 
+function edgeDiffuse( dir, amount )
+	return 128,128,128
+end
+
 local mat = {
 	-- fallback color: will only be used if no "pattern" function is specified:
 	colDiffuse = { r = 255, g=255, b=255, a=255 },
@@ -26,9 +30,10 @@ local mat = {
 	--colSpecular = { r = 155, g=200, b=200 },
 	
 	-- profile:
-	edgeDepth = 4,		-- how far each edge reaches into the shape
-	edgeNormal = edgeNormal,
-	edgeSpecular = edgeSpecular,
+	edgeDepth = 1,		-- how far each edge reaches into the shape
+	--edgeNormal = edgeNormal,
+	--edgeSpecular = edgeSpecular,
+	edgeDiffuse = edgeDiffuse,
 	
 	-- pattern repeated over the full shape:
 	patternWidth = 5,

@@ -234,7 +234,7 @@ function drawOutline( shape )
 	setColor( outCol.r,outCol.g,outCol.b,outCol.a )
 	
 	for k = 1, #shape.points-1 do
-		drawLine( shape.imageData, shape.points[k].x, shape.points[k].y,
+		drawLineAA( shape.imageData, shape.points[k].x, shape.points[k].y,
 							shape.points[k+1].x, shape.points[k+1].y)
 	end
 end
@@ -654,11 +654,11 @@ function plainNormalMap( dx, dy, dz )
 	dy = dy/len
 	dz = dz/len
 	return function(x, y, r, g, b, a)
-		if a > 0 then
-			return 127 + dx*127, 127 + dy*127, 127 + dz*127-- + dx*128, 128 +dy*128, 128+dz*128,255
-		else
-			return r, g, b, a
-		end
+		--if a > 0 then
+			return 127 + dx*127, 127 + dy*127, 127 + dz*127, 255-- + dx*128, 128 +dy*128, 128+dz*128,255
+		--else
+		--	return r, g, b, a
+		--end
 	end
 end
 
@@ -771,7 +771,7 @@ end
 function plainColMap( specR, specG, specB, specA )
 	return function(x, y, r, g, b, a)
 		if a > 0 then
-			return specR, specG, specB, specA
+			return specR, specG, specB, math.min(specA, a)
 		else
 			return r,g,b,a
 		end
@@ -809,7 +809,7 @@ function drawSpecularMap( shape )
 										shape.material.colSpecular.b,
 										255 ) )
 			else
-				shape.specularMap:mapPixel( plainSpecMap( 255, 255, 255, 255 ) )
+				shape.specularMap:mapPixel( plainColMap( 255, 255, 255, 255 ) )
 			end
 		end
 	end
@@ -878,12 +878,12 @@ function drawDiffuseMap( shape )
 					if (a == insCol.a and r == insCol.r and g == insCol.g and b == insCol.b) then
 						dX = (x % shape.material.patternWidth)/shape.material.patternWidth
 						dY = (y % shape.material.patternHeight)/shape.material.patternHeight
-						r,g,b,a = shape.material.patternDiffuse( dX, dY )
+						r,g,b,an = shape.material.patternDiffuse( dX, dY )
 						r = r or insCol.r
 						g = g or insCol.g
 						b = b or insCol.b
-						a = a or insCol.a
-						shape.diffuseMap:setPixel( x, y, r, g, b, a )
+						an = math.min(a, an or insCol.a)
+						shape.diffuseMap:setPixel( x, y, r, g, b, an )
 					end
 				end
 			end
@@ -897,7 +897,7 @@ function drawDiffuseMap( shape )
 										shape.material.colDiffuse.a ) )
 			
 			else
-				shape.diffuseMap:mapPixel( plainSpecMap( 255, 255, 255, 255 ) )
+				shape.diffuseMap:mapPixel( plainColMap( 255, 255, 255, 255 ) )
 			end
 		end
 	end
@@ -908,7 +908,6 @@ end
 
 function drawDiffuseMapEdge( shape )
 	if shape.diffuseMap and shape.material.edgeDiffuse and shape.material.edgeDepth then
-		--print("diffuse")
 		--print( shape.material.edgeDepth)
 		k = shape.step_dM
 		
@@ -1061,6 +1060,7 @@ function runThread()
 				y = b,
 			}
 			
+					shapeQueue[ID].imageData:encode("outline.png")
 			correctShapeDirection( shapeQueue[ID] )
 		end
 	
