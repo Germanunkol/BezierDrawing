@@ -287,7 +287,8 @@ function ShapeControl:click( mX, mY, button, zoom )
 				end
 			end
 			
-			removeFromTbl( self.shapes, self.shapes[k] )
+			--removeFromTbl( self.shapes, self.shapes[k] )
+			table.remove( self.shapes, k )
 		end
 	end
 end
@@ -338,7 +339,6 @@ function ShapeControl:keypressed( key, unicode )
 		self:setSnapToCPoints( not self:getSnapToCPoints() )
 	elseif key == "delete" then
 		if #self.selectedShapes > 0 then
-			print(#self.selectedShapes)
 			for k = 1, #self.selectedShapes do
 				if self.editedShape == self.selectedShapes[k] then
 					self.editedShape = nil
@@ -400,13 +400,18 @@ function ShapeControl:keypressed( key, unicode )
 			local new = {}
 			for k = 1, #self.selectedShapes do
 				new[k] = self.selectedShapes[k]:duplicate()
-				
-				self.shapes[#self.shapes+1] = new[k]
+				print(self.shapes,"extern")
+				-- one more on each shape because of previously added shapes!
+				local layer = self.selectedShapes[k]:getLayer() + k
+
+				table.insert( self.shapes, layer, new[k])	-- insert ABOVE currently selected shapes!
+
 				self.selectedShapes[k]:setSelected( false )
 				new[k]:setSelected( true )
-				new[k]:setLayer( #self.shapes )
 			end
+			-- correct layer information:
 			self.selectedShapes = new
+			self:calculateLayers(self.shapes)
 		end
 	elseif key == "s" then
 		self:save()
@@ -439,6 +444,12 @@ function ShapeControl:keypressed( key, unicode )
 			self.editedShape:setEditing( false )
 			self.editedShape = nil
 		end
+	end
+end
+
+function ShapeControl:calculateLayers( tbl )
+	for k = 1, #tbl do
+		tbl[k]:setLayer(k)
 	end
 end
 
@@ -796,8 +807,9 @@ function ShapeControl:load()
 				break
 			end
 			for s in str:gmatch("(Shape:.-endShape)") do
-				self.shapes[#self.shapes+1] = ShapeControl:shapeFromString( s )
+				self.shapes[#self.shapes+1] = self:shapeFromString( s )
 			end
+			self:calculateLayers( self.layers[layer] )		-- set the correct layer info for each shape
 			layer = layer+1
 		end
 	end

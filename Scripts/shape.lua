@@ -527,6 +527,11 @@ function Shape:setLayer( layer )
 	self.layer = layer
 end
 
+function Shape:getLayer()
+	print("self.layer:", self.layer)
+	return self.layer
+end
+
 function Shape:setEditing( bool )
 	self.editing = bool
 	if bool == true then
