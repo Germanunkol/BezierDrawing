@@ -654,11 +654,11 @@ function plainNormalMap( dx, dy, dz )
 	dy = dy/len
 	dz = dz/len
 	return function(x, y, r, g, b, a)
-		--if a > 0 then
+		if a > 0 then
 			return 127 + dx*127, 127 + dy*127, 127 + dz*127, 255-- + dx*128, 128 +dy*128, 128+dz*128,255
-		--else
-		--	return r, g, b, a
-		--end
+		else
+			return r, g, b, a
+		end
 	end
 end
 

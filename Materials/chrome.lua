@@ -41,6 +41,8 @@ local mat = {
 	--patternDiffuse = patternDiffuse,
 	--patternNormal = patternNormal,
 	patternSpecular = patternSpecular,
+
+	tiltable = true,
 }
 
 return mat

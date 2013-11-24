@@ -7,8 +7,8 @@ require("Scripts/polygon")
 local clickDist = 10
 local IMG_PADDING = 25
 local ANGLE_STEP = 0.1--math.pi/30
-local MAX_ANGLE = 1--14*math.pi/30
-local ANG_DISPL_SIZE = 12
+local MAX_ANGLE = 0.9--14*math.pi/30
+local ANG_DISPL_SIZE = 10
 
 Shape = class("Shape")
 local shapes = 0
@@ -200,8 +200,6 @@ end
 function Shape:isInsideBox( x1, y1, x2, y2 )
 	if x2 < x1 then x2,x1 = x1,x2 end
 	if y2 < y1 then y2,y1 = y1,y2 end
-	print( "x",x1, x2, "y", y1, y2 )
-	print( "\tx", self.boundingBox.minX, self.boundingBox.maxX, "y",self.boundingBox.minY, self.boundingBox.maxY)
 	if x1 < self.boundingBox.minX and y1 < self.boundingBox.minY and
 		x2 > self.boundingBox.maxX and y2 > self.boundingBox.maxY then
 		return true
@@ -332,12 +330,10 @@ end
 function Shape:startDragging( x, y )
 	self.dragged = true
 	self.startDragX, self.startDragY = x, y
-print("start:",self.startDragX, self.startDragY)
 end
 
 function Shape:stopDragging( x, y )
 	if self.offsetX and self.offsetY then
-		print("offset:",self.offsetX, self.offsetY)
 		for k = 1, #self.curves do
 			for i = 1, #self.curves[k].cPoints do
 				self.curves[k].cPoints[i]:addOffset( self.offsetX, self.offsetY )
@@ -489,8 +485,8 @@ function Shape:drawOutline()
 
 		if self.angle.x ~= 0 or self.angle.y ~= 0 then
 
-			local centerX = self.boundingBox.minX - ANG_DISPL_SIZE
-			local centerY = self.boundingBox.minY - ANG_DISPL_SIZE
+			local centerX = self.boundingBox.maxX + ANG_DISPL_SIZE
+			local centerY = self.boundingBox.maxY + ANG_DISPL_SIZE
 			
 			love.graphics.setColor( 128, 255, 255 )
 			love.graphics.line( centerX, centerY,
@@ -892,27 +888,30 @@ function Shape:setAngle( xAxis, yAxis )
 end
 
 function Shape:modifyAngle( xAxis, yAxis )
-	if xAxis == -1 then
-		self.angle.x =  self.angle.x + ANGLE_STEP
-	elseif xAxis == 1 then
-		self.angle.x = self.angle.x - ANGLE_STEP
-	end
 
-	if yAxis == 1 then
-		self.angle.y = self.angle.y + ANGLE_STEP
-	elseif yAxis == -1 then
-		self.angle.y = self.angle.y - ANGLE_STEP
+	if self.material and self.material.tiltable then
+		if xAxis == -1 then
+			self.angle.x =  self.angle.x + ANGLE_STEP
+		elseif xAxis == 1 then
+			self.angle.x = self.angle.x - ANGLE_STEP
+		end
+
+		if yAxis == 1 then
+			self.angle.y = self.angle.y + ANGLE_STEP
+		elseif yAxis == -1 then
+			self.angle.y = self.angle.y - ANGLE_STEP
+		end
+		
+		local len = math.sqrt(self.angle.x*self.angle.x + self.angle.y*self.angle.y)
+		if len > MAX_ANGLE then
+			self.angle.x = self.angle.x/len
+			self.angle.y = self.angle.y/len
+		end
+		
+		self:resetImage() -- force a re-render!
+		
+		print( self.angle.x*180/math.pi, self.angle.y*180/math.pi )
 	end
-	
-	local len = math.sqrt(self.angle.x*self.angle.x + self.angle.y*self.angle.y)
-	if len > MAX_ANGLE then
-		self.angle.x = self.angle.x/len
-		self.angle.y = self.angle.y/len
-	end
-	
-	self:resetImage() -- force a re-render!
-	
-	print( self.angle.x*180/math.pi, self.angle.y*180/math.pi )
 end
 
 function Shape:duplicate()
