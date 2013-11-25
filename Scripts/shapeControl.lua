@@ -333,6 +333,7 @@ function ShapeControl:boxSelect( x1, y1, x2, y2 )
 		end
 	end
 end
+
 function ShapeControl:keypressed( key, unicode )
 	if key == "g" then
 		self:setSnapToGrid( not self:getSnapToGrid() )
@@ -370,6 +371,44 @@ function ShapeControl:keypressed( key, unicode )
 				end
 			end
 		end
+	elseif key == "b" then
+		table.sort( self.selectedShapes,
+						function( a, b )
+							if a:getLayer() < b:getLayer() then
+								return true
+							end
+							return false
+						end )
+		local removed = 0
+		for k = 1, #self.shapes do
+			if self.shapes[k-removed]:getSelected() then
+				table.remove( self.shapes, k-removed )
+				removed = removed + 1
+			end
+		end
+		for k = 1, #self.selectedShapes do
+			table.insert( self.shapes, k, self.selectedShapes[k] )
+		end
+		self:calculateLayers( self.shapes )
+	elseif key == "t" then
+		table.sort( self.selectedShapes,
+						function( a, b )
+							if a:getLayer() < b:getLayer() then
+								return true
+							end
+							return false
+						end )
+		local removed = 0
+		for k = 1, #self.shapes do
+			if self.shapes[k-removed]:getSelected() then
+				table.remove( self.shapes, k-removed )
+				removed = removed + 1
+			end
+		end
+		for k = 1, #self.selectedShapes do
+			self.shapes[#self.shapes+1] = self.selectedShapes[k]
+		end
+		self:calculateLayers( self.shapes )
 	--[[elseif key == "m" then
 	
 		-- Scroll through all available materials.
@@ -763,7 +802,7 @@ function ShapeControl:save()
 
 	for k = 1, #self.layers do
 		if not self:constrainToCanvas( self.layers[k],
-				"WARNING: Cannot save - one or more shapes are not on the canvas!" ) then
+				"WARNING: Cannot save - one or more shapes are not on the construction area!" ) then
 			return
 		end
 	end
@@ -983,7 +1022,7 @@ function ShapeControl:constrainToCanvas( shapes, msg )
 		if not shapes[k]:isInsideBox( 0, 0,
 								self.gridSize*self.canvasWidth,
 								self.gridSize*self.canvasHeight  ) then
-			ui:addWarning( msg or "WARNING: Shape outside canvas" )
+			ui:addWarning( msg or "WARNING: Shape outside construction area!" )
 			return false
 		end	
 	end

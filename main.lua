@@ -142,6 +142,7 @@ function love.draw()
 			y = displayKey(10, y, "Click", "Select")
 			y = displayKey(10, y, "Double Click", "Edit")
 			y = displayKey(10, y, "Click + Drag", "Box Select")
+			y = displayKey(10, y, "Shift + Click", "Select multiple")
 		end
 		if #shapeControl:getSelectedShape() > 0 then
 			y = displayHeader(10, y, "Selected")
@@ -149,7 +150,8 @@ function love.draw()
 			y = displayKey(10, y, "Delete", "Delete Shape")
 			y = displayKey(10, y, "+", "Raise Shape")
 			y = displayKey(10, y, "-", "Lower Shape")
-			y = displayKey(10, y, "M", "Change Material")
+			y = displayKey(10, y, "T", "Raise to Top")
+			y = displayKey(10, y, "B", "Lower to Bottom")
 			
 			y = displayKey(10, y, "X", "Mirror X")
 			y = displayKey(10, y, "Y", "Mirror Y")
