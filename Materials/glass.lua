@@ -7,9 +7,12 @@ local mat = {
 	colSpecular = { r = 255, g=255, b=255 },
 	
 	-- profile:
-	--edgeDepth = 15,		-- how far each edge reaches into the shape
+	edgeDepth = 1,		-- how far each edge reaches into the shape
 	--edgeNormal = edgeNormal,
 	--edgeSpecular = edgeSpecular,
+	edgeDiffuse = function()
+			return 200,200,250
+		end,
 	
 	-- pattern repeated over the full shape:
 	--patternWidth = 20,

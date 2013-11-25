@@ -1,0 +1,66 @@
+Name: Large Thruster
+Image:
+	file: exhaust_main_blue
+	x: 0
+	y: 8
+	below: true
+endImage
+Image:
+	file: exhaust_flare
+	x: 100
+	y: 8
+endImage
+Shape: 11
+	material: dark
+	angX: 0
+	angY: 0
+	closed: true
+	x: 25
+	y: 0
+	Point: [160, 0]
+	Point: [170, 0]
+	Point: [190, 0]
+	Point: [200, 0]
+	Point: [205, 5]
+	Point: [215, 15]
+	Point: [220, 20]
+	Point: [220, 35]
+	Point: [220, 65]
+	Point: [220, 80]
+	Point: [215, 85]
+	Point: [205, 95]
+	Point: [200, 100]
+	Point: [190, 100]
+	Point: [170, 100]
+	Point: [160, 100]
+	Point: [140, 100]
+	Point: [140, 0]
+endShape
+
+Shape: 13
+	material: chrome
+	angX: 0
+	angY: 0
+	closed: true
+	x: 7.5
+	y: 10
+	Point: [220, 20]
+	Point: [215, 20]
+	Point: [205, 20]
+	Point: [200, 20]
+	Point: [195, 17.5]
+	Point: [185, 12.5]
+	Point: [180, 10]
+	Point: [110, 10]
+	Point: [110, 90]
+	Point: [180, 90]
+	Point: [185, 87.5]
+	Point: [195, 82.5]
+	Point: [200, 80]
+	Point: [205, 80]
+	Point: [215, 80]
+	Point: [220, 80]
+	Point: [220, 65]
+	Point: [220, 35]
+endShapee
+

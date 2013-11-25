@@ -528,7 +528,6 @@ function Shape:setLayer( layer )
 end
 
 function Shape:getLayer()
-	print("self.layer:", self.layer)
 	return self.layer
 end
 
@@ -850,12 +849,11 @@ function Shape:pointInsideBoundings( x, y )
 	return false
 end
 
-function Shape:flip( dir )
-
-	self:calcBoundingBox()
+function Shape:flip( dir, axis )
+	print(dir, axis)
 	
 	if dir == "x" then
-		local centerX = (self.boundingBox.maxX - self.boundingBox.minX)/2 + self.boundingBox.minX
+		local centerX = axis or (self.boundingBox.maxX - self.boundingBox.minX)/2 + self.boundingBox.minX
 		for k = 1, #self.curves do
 			for i = 1, #self.curves[k].cPoints do
 				local x = -self.curves[k].cPoints[i].x + 2*centerX
@@ -869,7 +867,7 @@ function Shape:flip( dir )
 		end
 		self.angle.x = -self.angle.x
 	else
-		local centerY = (self.boundingBox.maxY - self.boundingBox.minY)/2 + self.boundingBox.minY
+		local centerY = axis or (self.boundingBox.maxY - self.boundingBox.minY)/2 + self.boundingBox.minY
 		for k = 1, #self.curves do
 			for i = 1, #self.curves[k].cPoints do
 				local y = -self.curves[k].cPoints[i].y + 2*centerY
@@ -884,6 +882,7 @@ function Shape:flip( dir )
 		self.angle.y = -self.angle.y
 	end
 	self.modified = true
+	self:calcBoundingBox()
 	self:resetImage()
 end
 

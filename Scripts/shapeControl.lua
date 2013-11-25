@@ -2,6 +2,7 @@ require("Scripts/bezier")
 require("Scripts/middleclass")
 require("Scripts/shape")
 require("Scripts/misc")
+require("Scripts/object")
 
 ShapeControl = class("ShapeControl")
 
@@ -92,13 +93,13 @@ end
 
 function ShapeControl:getHitShape( mX, mY )
 	for k = #self.shapes, 1,-1 do
-		if self.shapes[k].closed == true then
+		if self.shapes[k].class == Object or self.shapes[k].closed == true then
 			if self.shapes[k]:pointIsInside(  mX, mY ) then
 				return self.shapes[k]
 			end
 		else
 			-- if not hit inside, check if line was hit
-			if self.shapes[k]:checkLineHit( mX, mY ) then
+			if self.shapes[k].class == Shape and self.shapes[k]:checkLineHit( mX, mY ) then
 				return self.shapes[k]
 			end
 		end
@@ -150,42 +151,41 @@ function ShapeControl:click( mX, mY, button, zoom )
 	
 	
 		if love.keyboard.isDown( "rctrl", "lctrl" ) then
-				local hit
-				if self.editedShape then
-					hit = self.editedShape:click( mX, mY, button, true )
-				end
-		
-				if not hit or hit.class ~= Corner
-					or (hit.prev and hit.next)	-- only two edges per node!
-					or hit == self.editedShape:getSelectedCorner()
-					or hit.next == self.editedShape:getSelectedCorner()
-					or hit.prev == self.editedShape:getSelectedCorner() then
-					
-					if not self.editedShape then
-						if self.editedShape then
-							self.editedShape:setEditing( false )
-						end
-						self.editedShape = self:newShape()
+			local hit
+			if self.editedShape then
+				hit = self.editedShape:click( mX, mY, button, true )
+			end
+	
+			if not hit or hit.class ~= Corner
+				or (hit.prev and hit.next)	-- only two edges per node!
+				or hit == self.editedShape:getSelectedCorner()
+				or hit.next == self.editedShape:getSelectedCorner()
+				or hit.prev == self.editedShape:getSelectedCorner() then
+				
+				if not self.editedShape then
+					if self.editedShape then
+						self.editedShape:setEditing( false )
 					end
+					self.editedShape = self:newShape()
+				end
 
-					local hitLine, dist = self.editedShape:checkLineHit( mX, mY, zoom )
-					if hitLine then		-- if click hit line, then 
-						self.editedShape:splitCurve( hitLine, dist )
-					elseif not self.editedShape.closed then
-						if self.snapToGrid then
-							mX = math.floor((mX+self.snapSize/2)/self.snapSize)*self.snapSize
-							mY = math.floor((mY+self.snapSize/2)/self.snapSize)*self.snapSize
-						end
-						self.editedShape:addCorner( mX, mY )
+				local hitLine, dist = self.editedShape:checkLineHit( mX, mY, zoom )
+				if hitLine then		-- if click hit line, then 
+					self.editedShape:splitCurve( hitLine, dist )
+				elseif not self.editedShape.closed then
+					if self.snapToGrid then
+						mX = math.floor((mX+self.snapSize/2)/self.snapSize)*self.snapSize
+						mY = math.floor((mY+self.snapSize/2)/self.snapSize)*self.snapSize
 					end
-				else
-			
-					self.editedShape:addCurve( hit )
-			
+					self.editedShape:addCorner( mX, mY )
 				end
-			--end
-		else
+			else
 		
+				self.editedShape:addCurve( hit )
+		
+			end
+			
+		else
 
 			local double = self:checkDoubleClick()
 			local hit, t
@@ -198,7 +198,7 @@ function ShapeControl:click( mX, mY, button, zoom )
 				end
 				
 				hit = self:getHitShape( mX, mY )
-				if hit then
+				if hit and hit.class == Shape then
 					hit:setEditing( true )
 					self.editedShape = hit
 				end
@@ -221,7 +221,6 @@ function ShapeControl:click( mX, mY, button, zoom )
 				
 					hit = self:getHitShape( mX, mY )
 					if hit then
-						
 						if not love.keyboard.isDown("lshift") and
 							not hit:getSelected() then
 							self:unselectAll()
@@ -281,7 +280,9 @@ function ShapeControl:click( mX, mY, button, zoom )
 		end
 	end
 	for k = 1, #self.shapes do
-		if self.shapes[k]:getNumCorners() <= 1 and self.shapes[k] ~= self.editedShape then
+		if self.shapes[k].class == Shape and
+				self.shapes[k]:getNumCorners() <= 1 and
+				self.shapes[k] ~= self.editedShape then
 			for i = 1, #self.selectedShapes do
 				if self.selectedShapes[i] == self.shapes[k] then
 					removeFromTbl( self.selectedShapes, self.selectedShapes[i])
@@ -428,12 +429,28 @@ function ShapeControl:keypressed( key, unicode )
 			end
 		end]]--
 	elseif key == "x" then
+		-- find the upper left corner of the selection
+		-- then mirror over that point.
+		local upperX = math.huge
+		local lowerX = -math.huge
+		for k,s in ipairs( self.selectedShapes ) do
+			upperX = math.min( upperX, s.boundingBox.minX )
+			lowerX = math.max( lowerX, s.boundingBox.maxX )
+		end
 		for k = 1, #self.selectedShapes do
-			self.selectedShapes[k]:flip( "x" )
+			self.selectedShapes[k]:flip( "x", (upperX + lowerX)/2 )
 		end
 	elseif key == "y" then
+		-- find the upper left corner of the selection
+		-- then mirror over that point.
+		local upperY = math.huge
+		local lowerY = -math.huge
+		for k,s in ipairs( self.selectedShapes ) do
+			upperY = math.min( upperY, s.boundingBox.minY )
+			lowerY = math.max( lowerY, s.boundingBox.maxY )
+		end
 		for k = 1, #self.selectedShapes do
-			self.selectedShapes[k]:flip( "y" )
+			self.selectedShapes[k]:flip( "y", (upperY + lowerY)/2 )
 		end
 	elseif key == "d" then
 		if #self.selectedShapes > 0 and not self.editedShape and not self.draggedShape then
@@ -484,6 +501,9 @@ function ShapeControl:keypressed( key, unicode )
 			self.editedShape:setEditing( false )
 			self.editedShape = nil
 		end
+	elseif key == "r" then
+		self.shapes[#self.shapes + 1] = Object:new( "engine_large" )
+		self.shapes[#self.shapes]:setLayer( #self.shapes )
 	end
 end
 
@@ -855,7 +875,10 @@ function ShapeControl:load()
 				break
 			end
 			for s in str:gmatch("(Shape:.-endShape)") do
-				self.shapes[#self.shapes+1] = self:shapeFromString( s )
+				self.shapes[#self.shapes+1] = shapeFromString( s )
+			end
+			for s in str:gmatch("(Object:.-endObject)") do
+				self.shapes[#self.shapes+1] = objectFromString( s )
 			end
 			self:calculateLayers( self.layers[layer] )		-- set the correct layer info for each shape
 			layer = layer+1
@@ -879,11 +902,10 @@ function ShapeControl:load()
 	end
 end
 
-function ShapeControl:shapeFromString( str )
-
+function shapeFromString( str )
 	-- initialize with default values:
 	local tmpShape = {
-		materialName = "metal",
+		materialName = "dark",
 		x = 0,
 		y = 0,
 		closed = false,
@@ -893,7 +915,7 @@ function ShapeControl:shapeFromString( str )
 	-- get the actual values from the string:
 	local key, value, pos, x, y
 	for k, line in lines(str) do
-		key, value = line:match("\t\t(.+): (.+)")
+		key, value = line:match("\t*(.-): (.*)")
 		if key and value then
 			if key == "material" then
 				tmpShape.materialName = value
@@ -962,6 +984,61 @@ function ShapeControl:shapeFromString( str )
 	shape:setModified()
 	shape:calcBoundingBox()
 	return shape
+end
+
+function objectFromString( str )
+	-- initialize with default values:
+	local tmpObject = {
+		materialName = "dark",
+		x = 0,
+		y = 0,
+		sx = 1,
+		sy = 1,
+		maxX = 1,
+		maxY = 1,
+	}
+	
+	-- get the actual values from the string:
+	local key, value, pos, x, y
+	for k, line in lines(str) do
+		key, value = line:match("\t*(.-): (.*)")
+		if key and value then
+			if key == "material" then
+				tmpObject.materialName = value
+			elseif key == "type" then
+				tmpObject.objType = value
+			elseif key == "x" then
+				tmpObject.x = tonumber(value)
+			elseif key == "y" then
+				tmpObject.y = tonumber(value)
+			elseif key == "sx" then
+				tmpObject.sx = tonumber(value)
+			elseif key == "sy" then
+				tmpObject.sy = tonumber(value)
+			elseif key == "maxX" then
+				tmpObject.maxX = tonumber(value)
+			elseif key == "maxY" then
+				tmpObject.maxY = tonumber(value)
+			end
+		end
+	end
+
+	if not tmpObject.objType then
+		print("Error loading file: invalid object!")
+	end
+	local object = Object:new( tmpObject.objType, tmpObject.materialName )
+	object:moveTo( tmpObject.x, tmpObject.y )
+	object:setEditing( false )
+	object:setSelected( false )
+	object:calcBoundingBox()
+	if tmpObject.sx == -1 then
+		object:flip( "x", (tmpObject.x + tmpObject.maxX)/2)
+	end
+	if tmpObject.sy == -1 then
+		object:flip( "y", (tmpObject.y + tmpObject.maxY)/2)
+	end
+	object:setModified()
+	return object
 end
 -------------------------------------------
 
