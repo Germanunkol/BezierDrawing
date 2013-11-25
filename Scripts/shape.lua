@@ -200,8 +200,8 @@ end
 function Shape:isInsideBox( x1, y1, x2, y2 )
 	if x2 < x1 then x2,x1 = x1,x2 end
 	if y2 < y1 then y2,y1 = y1,y2 end
-	if x1 < self.boundingBox.minX and y1 < self.boundingBox.minY and
-		x2 > self.boundingBox.maxX and y2 > self.boundingBox.maxY then
+	if x1 <= self.boundingBox.minX and y1 <= self.boundingBox.minY and
+		x2 >= self.boundingBox.maxX and y2 >= self.boundingBox.maxY then
 		return true
 	else
 		return false

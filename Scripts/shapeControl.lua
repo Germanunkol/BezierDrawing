@@ -135,6 +135,7 @@ end
 
 function ShapeControl:unselectAll()
 	if #self.selectedShapes > 0 then
+		self:constrainToCanvas( self.selectedShapes )
 		for k = 1, #self.selectedShapes do
 			self.selectedShapes[k]:setSelected( false )
 			self.selectedShapes[k] = nil
@@ -759,6 +760,14 @@ end
 -- Save and load to the current imgName:
 -------------------------------------------
 function ShapeControl:save()
+
+	for k = 1, #self.layers do
+		if not self:constrainToCanvas( self.layers[k],
+				"WARNING: Cannot save - one or more shapes are not on the canvas!" ) then
+			return
+		end
+	end
+
 	print("saving:", self.designName .. ".sav" )
 	if self.designName then
 		local content = fileHeader
@@ -824,6 +833,11 @@ function ShapeControl:load()
 
 	self:selectMaterial()
 	
+	for k = 1, #self.layers do
+		if not self:constrainToCanvas( self.layers[k] ) then
+			break
+		end
+	end
 end
 
 function ShapeControl:shapeFromString( str )
@@ -962,4 +976,16 @@ function ShapeControl:saveImages( )
 			canvasSM:getImageData():encode( filename .. "s.png" )
 		end
 	end
+end
+
+function ShapeControl:constrainToCanvas( shapes, msg )
+	for k = 1, #shapes do
+		if not shapes[k]:isInsideBox( 0, 0,
+								self.gridSize*self.canvasWidth,
+								self.gridSize*self.canvasHeight  ) then
+			ui:addWarning( msg or "WARNING: Shape outside canvas" )
+			return false
+		end	
+	end
+	return true
 end

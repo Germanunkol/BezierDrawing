@@ -1060,7 +1060,6 @@ function runThread()
 				y = b,
 			}
 			
-					shapeQueue[ID].imageData:encode("outline.png")
 			correctShapeDirection( shapeQueue[ID] )
 		end
 	

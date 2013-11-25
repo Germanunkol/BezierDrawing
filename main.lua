@@ -1,5 +1,6 @@
 require("Scripts/shapeControl")
 require("Scripts/camera")
+ui = require("Scripts/ui")
 
 local gridSize = 20		-- 20 pixels is one meter
 local canvasWidth = 50
@@ -183,6 +184,7 @@ function love.draw()
 	-- local xPos, yPos = love.mouse.getPosition()
 	-- love.graphics.print( angBetweenPoints({x=xPos, y=yPos}, {x=love.graphics.getWidth()/2, y=love.graphics.getHeight()/2}, {x=love.graphics.getWidth()/2, y = 0}) /math.pi*180, 10, y + 20 )
 	
+	ui:draw()
 end
 
 function love.mousepressed( x,y,button )
@@ -213,6 +215,7 @@ function love.mousereleased( x,y,button )
 end
 
 function love.update( dt )
+	ui:update(dt)
 
 	timeStr = ""
 	time = love.timer.getMicroTime()
