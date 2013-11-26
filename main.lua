@@ -3,7 +3,7 @@ require("Scripts/camera")
 ui = require("Scripts/ui")
 
 local gridSize = 20		-- 20 pixels is one meter
-local canvasWidth = 50
+local canvasWidth = 90
 local canvasHeight = 50
 local shapeControl
 

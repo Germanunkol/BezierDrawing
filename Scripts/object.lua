@@ -175,6 +175,13 @@ function Object:draw( editMode )
 	end
 end
 
+function Object:drawPlain( map )
+	
+	for k = 1, #self.shapes do
+		self.shapes[k]:drawPlain( map )
+	end
+end
+
 function Object:drawOutline()
 	if self.dragged then
 		love.graphics.setColor(100,160,255, 255)
@@ -343,7 +350,7 @@ function Object:duplicate()
 end
 
 function Object:__tostring()
-	local str = "\tObject: " .. self.objectID .. "\n"
+	local str = "\tObject: " .. self.layer .. "\n"
 	str = str .. "\t\ttype: " .. self.objType .. "\n"
 	str = str .. "\t\tmaterial: " .. self.materialName .. "\n"
 	if self.boundingBox then

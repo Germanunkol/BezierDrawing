@@ -966,7 +966,7 @@ function Shape:__tostring()
 		self.curves[i].cPoints[1].hasBeenSaved = false
 		self.curves[i].cPoints[4].hasBeenSaved = false
 	end
-	local str = "\tShape: " .. self.shapeID .. "\n"
+	local str = "\tShape: " .. self.layer .. "\n"
 	str = str .. "\t\tmaterial: " .. self.materialName .. "\n"
 	str = str .. "\t\tangX: " .. self.angle.x .. "\n"
 	str = str .. "\t\tangY: " .. self.angle.y .. "\n"

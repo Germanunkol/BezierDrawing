@@ -875,10 +875,12 @@ function ShapeControl:load()
 				break
 			end
 			for s in str:gmatch("(Shape:.-endShape)") do
-				self.shapes[#self.shapes+1] = shapeFromString( s )
+				local new = shapeFromString( s )
+				self.shapes[ new:getLayer() ] = new
 			end
 			for s in str:gmatch("(Object:.-endObject)") do
-				self.shapes[#self.shapes+1] = objectFromString( s )
+				local new = objectFromString( s )
+				self.shapes[ new:getLayer() ] = new
 			end
 			self:calculateLayers( self.layers[layer] )		-- set the correct layer info for each shape
 			layer = layer+1
@@ -910,6 +912,7 @@ function shapeFromString( str )
 		y = 0,
 		closed = false,
 		points = {},
+		layer = 1,
 	}
 	
 	-- get the actual values from the string:
@@ -917,7 +920,9 @@ function shapeFromString( str )
 	for k, line in lines(str) do
 		key, value = line:match("\t*(.-): (.*)")
 		if key and value then
-			if key == "material" then
+			if key == "Shape" then
+				tmpShape.layer = tonumber(value)
+			elseif key == "material" then
 				tmpShape.materialName = value
 			elseif key == "closed" then
 				if value == "true" then
@@ -979,6 +984,7 @@ function shapeFromString( str )
 		end
 	end
 	
+	shape:setLayer( tmpShape.layer )
 	shape:setEditing( false )
 	shape:setSelected( false )
 	shape:setModified()
@@ -996,6 +1002,7 @@ function objectFromString( str )
 		sy = 1,
 		maxX = 1,
 		maxY = 1,
+		layer = 1,
 	}
 	
 	-- get the actual values from the string:
@@ -1003,7 +1010,9 @@ function objectFromString( str )
 	for k, line in lines(str) do
 		key, value = line:match("\t*(.-): (.*)")
 		if key and value then
-			if key == "material" then
+			if key == "Object" then
+				tmpObject.layer = tonumber(value)
+			elseif key == "material" then
 				tmpObject.materialName = value
 			elseif key == "type" then
 				tmpObject.objType = value
@@ -1027,6 +1036,7 @@ function objectFromString( str )
 		print("Error loading file: invalid object!")
 	end
 	local object = Object:new( tmpObject.objType, tmpObject.materialName )
+	object:setLayer( tmpObject.layer )
 	object:moveTo( tmpObject.x, tmpObject.y )
 	object:setEditing( false )
 	object:setSelected( false )
