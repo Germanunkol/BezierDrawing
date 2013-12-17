@@ -52,7 +52,8 @@ FinalColor = DiffuseColor.rgb * Intensity.rgb*/
 	
 	//Pre-multiply light color with intensity
 	//Then perform "N dot L" to determine our diffuse term
-	vec3 Diffuse = (LightColor.rgb * SpecularMap.rgb * LightColor.a) * max(dot(N, L), 0.0);
+	//vec3 Diffuse = (LightColor.rgb * SpecularMap.rgb * LightColor.a) * max(dot(N, L), 0.0);
+	vec3 Diffuse = (LightColor.rgb * SpecularMap.rgb * LightColor.a) * dot(N, L);
 
 	//pre-multiply ambient color with intensity
 	vec3 Ambient = AmbientColor.rgb * AmbientColor.a * N.z;
